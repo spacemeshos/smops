@@ -91,78 +91,76 @@ pipeline {
     stage('Create k8s manifest') {
       steps {
         script {
-          echo "Creating k8s manifest with ${INIT_COUNT} jobs"
-          def k8s_manifest = ""
-          for(i in 1..INIT_COUNT) {
-            job_id = sprintf("%05d", i)
-
-            k8s_manifest += """\
-               ---
-               apiVersion: batch/v1
-               kind: Job
-               metadata:
+          // Generate a random job id
+          job_id = sprintf("%08x", (2**31*Math.random()).toInteger())
+          k8s_manifest += """\
+             ---
+             apiVersion: batch/v1
+             kind: Job
+             metadata:
+               name: initfactory-${job_id}
+               labels:
+                 app: initfactory
                  name: initfactory-${job_id}
-                 labels:
-                   app: initfactory
-                   name: initfactory-${job_id}
-               spec:
-                 template:
-                   metadata:
-                     labels:
-                       app: initfactory
-                   spec:
-                     tolerations:
-                       - effect: NoExecute
-                         key: dedicated
-                         operator: Equal
-                         value: InitFactory
-                       - effect: NoSchedule
-                         key: dedicated
-                         operator: Equal
-                         value: InitFactory
-                     nodeSelector:
-                       pool: InitFactory
-                     containers:
-                       - name: default
-                         image: "${initfactory_image}"
-                         env:
-                           - name: SPACEMESH_S3_BUCKET
-                             valueFrom:
-                               configMapKeyRef:
-                                 name: initfactory
-                                 key: initdata_s3_bucket
-                           - name: SPACEMESH_S3_PREFIX
-                             valueFrom:
-                               configMapKeyRef:
-                                 name: initfactory
-                                 key: initdata_s3_prefix
-                           - name: SPACEMESH_DYNAMODB_TABLE
-                             valueFrom:
-                               configMapKeyRef:
-                                 name: initfactory
-                                 key: initdata_dynamodb_table
-                           - name: SPACEMESH_DYNAMODB_REGION
-                             valueFrom:
-                               configMapKeyRef:
-                                 name: initfactory
-                                 key: initdata_dynamodb_region
-                           - name: SPACEMESH_FILESIZE
-                             value: "${SPACEMESH_FILESIZE}"
-                           - name: SPACEMESH_SPACE
-                             value: "${SPACEMESH_SPACE}"
-                           - name: SPACEMESH_ID
-                             value: "${SPACEMESH_ID}"
-                         resources:
-                           requests:
-                             cpu: "${cpu_requests}"
-                           limits:
-                             cpu: "${cpu_limits}"
-                     restartPolicy: Never
-                 backoffLimit: ${backoff_limit}
-               """.stripIndent()
-          }
+             spec:
+               completions: ${INIT_COUNT}
+               parallelism: ${INIT_COUNT}
+               template:
+                 metadata:
+                   labels:
+                     app: initfactory
+                 spec:
+                   tolerations:
+                     - effect: NoExecute
+                       key: dedicated
+                       operator: Equal
+                       value: InitFactory
+                     - effect: NoSchedule
+                       key: dedicated
+                       operator: Equal
+                       value: InitFactory
+                   nodeSelector:
+                     pool: InitFactory
+                   containers:
+                     - name: default
+                       image: "${initfactory_image}"
+                       env:
+                         - name: SPACEMESH_S3_BUCKET
+                           valueFrom:
+                             configMapKeyRef:
+                               name: initfactory
+                               key: initdata_s3_bucket
+                         - name: SPACEMESH_S3_PREFIX
+                           valueFrom:
+                             configMapKeyRef:
+                               name: initfactory
+                               key: initdata_s3_prefix
+                         - name: SPACEMESH_DYNAMODB_TABLE
+                           valueFrom:
+                             configMapKeyRef:
+                               name: initfactory
+                               key: initdata_dynamodb_table
+                         - name: SPACEMESH_DYNAMODB_REGION
+                           valueFrom:
+                             configMapKeyRef:
+                               name: initfactory
+                               key: initdata_dynamodb_region
+                         - name: SPACEMESH_FILESIZE
+                           value: "${SPACEMESH_FILESIZE}"
+                         - name: SPACEMESH_SPACE
+                           value: "${SPACEMESH_SPACE}"
+                         - name: SPACEMESH_ID
+                           value: "${SPACEMESH_ID}"
+                       resources:
+                         requests:
+                           cpu: "${cpu_requests}"
+                         limits:
+                           cpu: "${cpu_limits}"
+                   restartPolicy: Never
+               backoffLimit: ${backoff_limit}
+             """.stripIndent()
           echo k8s_manifest
-          writeFile file: "manifest.yaml", text: k8s_manifest
+          writeFile file: "manifest-${job_id}.yaml", text: k8s_manifest
         }
       }
     }
@@ -170,6 +168,12 @@ pipeline {
     stage('Apply manifest') {
       steps {
         sh """kubectl apply -f manifest.yaml"""
+      }
+    }
+
+    stage('Archive manifest') {
+      steps {
+        archiveArtifacts "manifest-*.yaml"
       }
     }
   }

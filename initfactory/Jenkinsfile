@@ -93,7 +93,7 @@ pipeline {
         script {
           // Generate a random job id
           job_id = sprintf("%08x", (2**31*Math.random()).toInteger())
-          k8s_manifest += """\
+          k8s_manifest = """\
              ---
              apiVersion: batch/v1
              kind: Job

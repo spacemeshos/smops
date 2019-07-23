@@ -27,6 +27,9 @@ def aws_asg_set_size = {aws_region, group_name, desired_nodes, max_nodes ->
   """aws --region=${aws_region} autoscaling update-auto-scaling-group --auto-scaling-group-name ${group_name} --desired-capacity ${desired_nodes} --max-size ${max_nodes}"""
 }
 
+/* Pipeline global vars */
+def job_id
+
 /*
   PIPELINE
  */
@@ -59,6 +62,9 @@ pipeline {
           if(SPACEMESH_ID != "") {
               INIT_COUNT = 1
           }
+
+          // Generate a random job id
+          job_id = sprintf("%08x", (2**31*Math.random()).toInteger())
         }
       }
     }
@@ -91,8 +97,6 @@ pipeline {
     stage('Create k8s manifest') {
       steps {
         script {
-          // Generate a random job id
-          job_id = sprintf("%08x", (2**31*Math.random()).toInteger())
           k8s_manifest = """\
              ---
              apiVersion: batch/v1
@@ -167,13 +171,22 @@ pipeline {
 
     stage('Apply manifest') {
       steps {
-        sh """kubectl apply -f manifest.yaml"""
+        sh """kubectl apply -f manifest-${job_id}.yaml"""
       }
     }
 
     stage('Archive manifest') {
       steps {
-        archiveArtifacts "manifest-*.yaml"
+        archiveArtifacts "manifest-${job_id}.yaml"
+      }
+    }
+  }
+
+  post {
+    success {
+      steps {
+        // Do some cleanup
+        sh "rm -f manifest-*.yaml"
       }
     }
   }

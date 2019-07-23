@@ -1,0 +1,26 @@
+---
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: bastion1
+  labels:
+    app: bastion
+spec:
+  template:
+    metadata:
+      labels:
+        app: bastion
+    spec:
+      tolerations:
+        - effect: NoSchedule
+          key: dedicated
+          operator: Equal
+          value: PoET
+
+      containers:
+        - name: default
+          image: alpine:latest
+          stdin: true
+          tty:   true
+      restartPolicy: Never
+  backoffLimit: 5

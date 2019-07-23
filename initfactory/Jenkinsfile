@@ -1,0 +1,178 @@
+/* Container image to use */
+def initfactory_image = "534354616613.dkr.ecr.us-east-1.amazonaws.com/spacemesh-testnet-initfactory:latest"
+
+/* Cluster node parameters */
+def cpu_per_node = 4
+def cpu_per_job = 1
+
+/* Job resources and other params */
+def backoff_limit = 5
+def cpu_requests  = "500m"
+def cpu_limits    = "1000m"
+
+/* AutoScaling Group parameters */
+def asg_name   = "spacemesh-testnet-initfactory"
+def asg_region = "us-east-1"
+def wait_time  = 60
+
+/* Library function: call script and return stdout */
+def shell = {cmd -> sh(returnStdout: true, script: cmd).trim() }
+
+/* Shell script snippets */
+def aws_asg_size = {aws_region, group_name ->
+  """aws --region=${aws_region} autoscaling describe-auto-scaling-groups --auto-scaling-group-name ${group_name} --query 'AutoScalingGroups[0] | [length(Instances), MaxSize]' --output text"""
+}
+
+def aws_asg_set_size = {aws_region, group_name, desired_nodes, max_nodes ->
+  """aws --region=${aws_region} autoscaling update-auto-scaling-group --auto-scaling-group-name ${group_name} --desired-capacity ${desired_nodes} --max-size ${max_nodes}"""
+}
+
+/*
+  PIPELINE
+ */
+pipeline {
+  options {
+    buildDiscarder(logRotator(numToKeepStr: '5')) // Keep last 5 builds only
+  }
+
+  /* Job parameters */
+  parameters {
+    string(name: 'INIT_COUNT',         defaultValue: '10',      description: 'Init tasks(jobs) count')
+    string(name: 'SPACEMESH_FILESIZE', defaultValue: '1048576', description: 'Init file size')
+    string(name: 'SPACEMESH_SPACE',    defaultValue: '1048576', description: 'Init file space size')
+    string(name: 'SPACEMESH_ID',       defaultValue: '',        description: 'Miner ID')
+    booleanParam(name: 'RESIZE_NODE_POOL', defaultValue: true,  description: 'Resize node pool')
+  }
+
+  agent any
+
+  stages {
+    stage("Prepare") {
+      steps {
+        script {
+          // Ensure the parameters are numeric
+          INIT_COUNT = INIT_COUNT.toInteger()
+          SPACEMESH_SPACE = SPACEMESH_SPACE.toInteger()
+          SPACEMESH_FILESIZE = SPACEMESH_FILESIZE.toInteger()
+
+          // If miner ID is given - then run a single job
+          if(SPACEMESH_ID != "") {
+              INIT_COUNT = 1
+          }
+        }
+      }
+    }
+
+    stage('Resize node pool') {
+      steps {
+        script {
+          echo "${RESIZE_NODE_POOL}"
+          if(params.RESIZE_NODE_POOL) {
+            int total_cores = INIT_COUNT * cpu_per_job
+            echo "Need total CPU cores: ${total_cores}"
+            int need_nodes = (total_cores + cpu_per_node - 1) / cpu_per_node
+            echo "Need nodes: ${need_nodes}"
+
+            // Get the current node pool size
+            (current_nodes, max_nodes) = shell(aws_asg_size(asg_region, asg_name)).split()
+            current_nodes = current_nodes.toInteger()
+            max_nodes = max_nodes.toInteger()
+            echo "Current nodes: ${current_nodes} / ${max_nodes}"
+
+            // Start additional nodes
+            sh aws_asg_set_size(asg_region, asg_name, current_nodes + need_nodes, max_nodes + need_nodes)
+            echo "Waiting for nodes to settle"
+            sleep(wait_time)
+          }
+        }
+      }
+    }
+
+    stage('Create k8s manifest') {
+      steps {
+        script {
+          echo "Creating k8s manifest with ${INIT_COUNT} jobs"
+          def k8s_manifest = ""
+          for(i in 1..INIT_COUNT) {
+            job_id = sprintf("%05d", i)
+
+            k8s_manifest += """\
+               ---
+               apiVersion: batch/v1
+               kind: Job
+               metadata:
+                 name: initfactory-${job_id}
+                 labels:
+                   app: initfactory
+                   name: initfactory-${job_id}
+               spec:
+                 template:
+                   metadata:
+                     labels:
+                       app: initfactory
+                   spec:
+                     tolerations:
+                       - effect: NoExecute
+                         key: dedicated
+                         operator: Equal
+                         value: InitFactory
+                       - effect: NoSchedule
+                         key: dedicated
+                         operator: Equal
+                         value: InitFactory
+                     nodeSelector:
+                       pool: InitFactory
+                     containers:
+                       - name: default
+                         image: "${initfactory_image}"
+                         env:
+                           - name: SPACEMESH_S3_BUCKET
+                             valueFrom:
+                               configMapKeyRef:
+                                 name: initfactory
+                                 key: initdata_s3_bucket
+                           - name: SPACEMESH_S3_PREFIX
+                             valueFrom:
+                               configMapKeyRef:
+                                 name: initfactory
+                                 key: initdata_s3_prefix
+                           - name: SPACEMESH_DYNAMODB_TABLE
+                             valueFrom:
+                               configMapKeyRef:
+                                 name: initfactory
+                                 key: initdata_dynamodb_table
+                           - name: SPACEMESH_DYNAMODB_REGION
+                             valueFrom:
+                               configMapKeyRef:
+                                 name: initfactory
+                                 key: initdata_dynamodb_region
+                           - name: SPACEMESH_FILESIZE
+                             value: "${SPACEMESH_FILESIZE}"
+                           - name: SPACEMESH_SPACE
+                             value: "${SPACEMESH_SPACE}"
+                           - name: SPACEMESH_ID
+                             value: "${SPACEMESH_ID}"
+                         resources:
+                           requests:
+                             cpu: "${cpu_requests}"
+                           limits:
+                             cpu: "${cpu_limits}"
+                     restartPolicy: Never
+                 backoffLimit: ${backoff_limit}
+               """.stripIndent()
+          }
+          echo k8s_manifest
+          writeFile file: "manifest.yaml", text: k8s_manifest
+        }
+      }
+    }
+
+    stage('Apply manifest') {
+      steps {
+        sh """kubectl apply -f manifest.yaml"""
+      }
+    }
+  }
+}
+
+/* vim:set filetype=groovy ts=2 sw=2 et: */

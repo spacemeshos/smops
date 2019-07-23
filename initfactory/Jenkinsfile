@@ -184,10 +184,8 @@ pipeline {
 
   post {
     success {
-      steps {
-        // Do some cleanup
-        sh "rm -f manifest-*.yaml"
-      }
+      // Do some cleanup
+      sh "rm -f manifest-*.yaml"
     }
   }
 }

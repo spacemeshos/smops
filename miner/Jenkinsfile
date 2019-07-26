@@ -1,0 +1,219 @@
+def aws_region = "us-east-1"
+def kubectl = "kubectl --context=miner-${aws_region}"
+
+def default_miner_image = "spacemeshos/go-spacemesh:787b038"
+
+/* Library function: call script and return stdout */
+def shell = {cmd -> sh(returnStdout: true, script: cmd).trim() }
+
+/* Library function: generate a random ID */
+/* FIXME: Calling a shell to do it is insane but sandbox is too limited */
+def random_id = { shell("""openssl rand -hex 6""") }
+
+/* Shell script snippets */
+def create_bootstrap_svc = {pool_id ->
+  """
+  tee bootstrap-${pool_id}-svc.yml <<EOF | ${kubectl} create -f -
+  ---
+  apiVersion: v1
+  kind: Service
+  metadata:
+    name: miner-${pool_id}-bootstrap
+    labels:
+      app: miner
+      miner-pool: ${pool_id}
+  spec:
+    type: NodePort
+    selector:
+      miner-node: miner-${pool_id}-bootstrap
+    ports:
+    - protocol: TCP
+      port: 9091
+  EOF
+  """.stripIndent()
+}
+
+def get_bootstrap_pod = {pool_id ->
+  """\
+  ${kubectl} get pod -l miner-node=miner-${pool_id}-bootstrap --template '{{\$i := index .items 0 }}{{\$i.metadata.name}} {{\$i.status.phase}} {{\$i.spec.nodeName}}' 2>/dev/null
+  """.stripIndent().trim()
+}
+
+def bootstrap_manifest = {pool_id, miner_image ->
+  """
+  ---
+  apiVersion: apps/v1
+  kind: Deployment
+  metadata:
+    name: miner-${pool_id}-bootstrap
+    labels:
+      app: miner
+      miner-pool: \"${pool_id}\"
+      miner-node: miner-${pool_id}-bootstrap
+  spec:
+    replicas: 1
+    selector:
+      matchLabels:
+        app: miner-bootstrap
+    template:
+      metadata:
+        labels:
+          app: miner-bootstrap
+          miner-pool: \"${pool_id}\"
+          miner-node: miner-${pool_id}-bootstrap
+      spec:
+        volumes:
+          - name: miner-storage
+            emptyDir: {}
+        containers:
+          - name: default
+            image: \"${miner_image}\"
+            imagePullPolicy: "Always"
+            env:
+              - name: SPACEMESH_MINER_PORT
+                value: "9091"
+              - name: SPACEMESH_COINBASE
+                value: "0x1234"
+              - name: SPACEMESH_POET_GRPC
+                value: "spacemesh-testnet-poet-grpc-lb-f34cb9e80d3b5d58.elb.us-east-1.amazonaws.com:50002"
+            args: [ "--grpc-server", "--grpc-port", \$(SPACEMESH_MINER_PORT),
+                    "--coinbase",    \$(SPACEMESH_COINBASE),
+                    "--poet-server", \$(SPACEMESH_POET_GRPC),
+                  ]
+            resources:
+              limits:
+                cpu: 1000m
+              requests:
+                cpu: 100m
+            volumeMounts:
+              - name: miner-storage
+                mountPath: /root
+  """.stripIndent()
+}
+
+def get_svc_port = {svc ->
+  """
+  ${kubectl} get svc ${svc} --template '{{(index .spec.ports 0).nodePort}}'
+  """.stripIndent()
+}
+
+def get_node_inst_id = {node ->
+  """
+  ${kubectl} get node ${node} --template '{{.spec.providerID}}' | sed -e 's/.\\+\\///'
+  """.stripIndent()
+}
+
+def get_instance_ip = {inst_id ->
+  """
+  aws ec2 describe-instances --region=${aws_region} --instance-ids ${inst_id} --query 'Reservations[0].Instances[0].PublicIpAddress' --output text
+  """.stripIndent()
+}
+
+def get_bootstrap_id = {pod ->
+  """
+  ${kubectl} logs ${pod} --tail=-1 -f |\\
+  sed -ne '/Local node identity / { s/.\\+Local node identity >> \\([a-zA-Z0-9]\\+\\).*/\\1/ ; p; q; }'
+  """.stripIndent()
+}
+
+/* Pipeline global vars */
+def miner_count
+def bootstrap_addr
+def bootstrap_pod
+def bootstrap_port
+def bootstrap_id
+
+/*
+  PIPELINE
+ */
+pipeline {
+  agent any
+
+  options {
+    buildDiscarder(logRotator(numToKeepStr: '5')) // Keep last 5 builds only
+  }
+
+  parameters {
+    string name: 'MINER_COUNT', defaultValue: '', description: 'Number of the miners to start', trim: true
+    string name: 'MINER_IMAGE', defaultValue: default_miner_image, description: 'Miner pool id', trim: true
+    string name: 'POOL_ID',     defaultValue: '', description: 'Miner pool id', trim: true
+  }
+
+  stages {
+    stage("Prepare") {
+      steps {
+        script {
+          miner_count = params.MINER_COUNT as int
+          assert miner_count > 0
+          pool_id = params.POOL_ID ?: random_id()
+        }
+        echo "Number of miners: ${MINER_COUNT}"
+        echo "Miner pool ID: ${pool_id}"
+      }
+    }
+
+    stage("Create bootstrap service") {
+      steps {
+        echo "Creating service"
+        sh create_bootstrap_svc(pool_id)
+
+        echo "Getting service port"
+        script {
+          bootstrap_port = shell(get_svc_port("miner-${pool_id}-bootstrap"))
+        }
+        echo "Node port: ${bootstrap_port}"
+      }
+    }
+
+    /* FIXME: Add PVC here */
+
+    stage("Create bootstrap miner") {
+      steps {
+        echo "Generating manifest"
+        writeFile file: "bootstrap-${pool_id}-deploy.yml", text: bootstrap_manifest(pool_id, params.MINER_IMAGE)
+        echo "Creating bootstrap Deployment"
+        sh """${kubectl} create -f bootstrap-${pool_id}-deploy.yml"""
+        echo "Waiting for the bootstrap pod to be scheduled..."
+        script {
+          def pod_node
+
+          /* Wait until a pod in a Running state appears */
+          timeout(time: 600, unit: 'SECONDS') {
+            waitUntil {
+              try {
+                (bootstrap_pod, pod_status, pod_node) = shell(get_bootstrap_pod(pool_id, miner_image)).split()
+                pod_status == "Running"
+              } catch(all) {
+                sleep time: 30, unit: 'SECONDS'
+                false
+              }
+            }
+          }
+
+          echo "Running on node ${pod_node}, getting AWS instance id"
+          def inst_id = shell(get_node_inst_id(pod_node))
+
+          echo "Getting AWS instance '${inst_id}' public IP"
+          bootstrap_addr = shell(get_instance_ip(inst_id))
+        }
+        echo "Bootstrapping from: ${bootstrap_addr}:${bootstrap_port}"
+
+        echo "Getting bootstrap miner_id from the logs"
+        script {
+          timeout(time: 600, unit: 'SECONDS') {
+            bootstrap_id = shell(get_bootstrap_id(bootstrap_pod))
+          }
+        }
+        echo "Bootstrap ID: ${bootstrap_id}"
+      }
+    }
+
+    stage("Archive artifacts") {
+      steps {
+        archiveArtifacts "*-${pool_id}-*.yml"
+      }
+    }
+  }
+}
+
+/* vim: set filetype=groovy ts=2 sw=2 et : */

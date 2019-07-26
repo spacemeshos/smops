@@ -1,0 +1,51 @@
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: bastion-pv-claim
+spec:
+  storageClassName: gp2-delayed
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 10Gi
+---
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: bastion-pv
+  labels:
+    app: bastion
+spec:
+  template:
+    metadata:
+      labels:
+        app: bastion
+    spec:
+      nodeSelector:
+        pool: InitFactory
+
+      tolerations:
+        - effect: NoExecute
+          key: dedicated
+          operator: Equal
+          value: InitFactory
+
+      volumes:
+        - name: bastion-storage
+          persistentVolumeClaim:
+            claimName: bastion-pv-claim
+
+      containers:
+        - name: default
+          image: alpine:latest
+          stdin: true
+          tty:   true
+          volumeMounts:
+            - mountPath: /mnt
+              name: bastion-storage
+
+      restartPolicy: Never
+
+  backoffLimit: 5

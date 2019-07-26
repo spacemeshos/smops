@@ -1,0 +1,25 @@
+---
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: bastion
+  labels:
+    app: bastion
+spec:
+  template:
+    metadata:
+      labels:
+        app: bastion
+    spec:
+      nodeSelector:
+        kubernetes.io/hostname: ip-10-109-1-216.ec2.internal
+
+      containers:
+        - name: default
+          image: alpine:latest
+          stdin: true
+          tty:   true
+
+      restartPolicy: Never
+
+  backoffLimit: 5

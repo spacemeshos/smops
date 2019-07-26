@@ -3,13 +3,6 @@ def kubectl = "kubectl --context=miner-${aws_region}"
 
 def default_miner_image = "spacemeshos/go-spacemesh:787b038"
 
-/* Library function: call script and return stdout */
-def shell = {cmd -> sh(returnStdout: true, script: cmd).trim() }
-
-/* Library function: generate a random ID */
-/* FIXME: Calling a shell to do it is insane but sandbox is too limited */
-def random_id = { shell("""openssl rand -hex 6""") }
-
 /* Shell script snippets */
 def create_bootstrap_svc = {pool_id ->
   """

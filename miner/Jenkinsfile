@@ -3,6 +3,8 @@ def kubectl = "kubectl --context=miner-${aws_region}"
 
 def default_miner_image = "spacemeshos/go-spacemesh:787b038"
 
+def init_miner_image = "534354616613.dkr.ecr.us-east-1.amazonaws.com/spacemesh-testnet-miner-init:latest"
+
 /* Shell script snippets */
 def create_bootstrap_svc = {pool_id ->
   """
@@ -58,6 +60,40 @@ def bootstrap_manifest = {pool_id, miner_image ->
         volumes:
           - name: miner-storage
             emptyDir: {}
+
+        initContainers:
+          - name: miner-init
+            image: \"${init_miner_image}\"
+            env:
+              - name: SPACEMESH_S3_BUCKET
+                valueFrom:
+                  configMapKeyRef:
+                    name: spacemesh-testnet-miner
+                    key: initdata_s3_bucket
+              - name: SPACEMESH_S3_PREFIX
+                valueFrom:
+                  configMapKeyRef:
+                    name: spacemesh-testnet-miner
+                    key: initdata_s3_prefix
+              - name: SPACEMESH_DYNAMODB_TABLE
+                valueFrom:
+                  configMapKeyRef:
+                    name: spacemesh-testnet-miner
+                    key: initdata_dynamodb_table
+              - name: SPACEMESH_DYNAMODB_REGION
+                valueFrom:
+                  configMapKeyRef:
+                    name: spacemesh-testnet-miner
+                    key: initdata_dynamodb_region
+              - name: SPACEMESH_WORKDIR
+                value: "/root"
+              - name: SPACEMESH_DATADIR
+                value: "./post/data"
+
+            volumeMounts:
+              - name: miner-storage
+                mountPath: /root
+
         containers:
           - name: default
             image: \"${miner_image}\"

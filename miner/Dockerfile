@@ -36,6 +36,8 @@ COPY --chown=root:root wrapper.py /bin/spacemesh-miner-wrapper.py
 RUN chmod 0755 /bin/spacemesh-miner-wrapper.py
 
 ### Default command
-USER spacemesh
-WORKDIR /home/spacemesh
+#USER spacemesh
+#WORKDIR /home/spacemesh
+USER root
+WORKDIR /root
 CMD ["/bin/spacemesh-miner-wrapper.py"]

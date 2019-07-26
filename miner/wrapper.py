@@ -164,7 +164,7 @@ for obj in data_objects["Contents"]:
         dest = dest[length(SPACEMESH_S3_PREFIX)+1:]
 
     # Download under DATA/nodes/ path
-    dest = os.path.join(SPACEMESH_DATADIR, "nodes", dest)
+    dest = os.path.join(SPACEMESH_DATADIR, dest)
 
     # Ensure all directories exist
     os.makedirs(os.path.dirname(dest), mode=0o755, exist_ok=True)

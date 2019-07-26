@@ -7,8 +7,6 @@ def call(args) {
     length = args
   }
 
-  echo "length is ${length}"
-
   def r = ""
 
   // Generate 8-char chunks as required

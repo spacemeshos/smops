@@ -14,7 +14,7 @@ def create_bootstrap_svc = {pool_id ->
     name: miner-${pool_id}-bootstrap
     labels:
       app: miner
-      miner-pool: ${pool_id}
+      miner-pool: \"${pool_id}\"
   spec:
     type: NodePort
     selector:

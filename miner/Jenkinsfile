@@ -5,6 +5,13 @@ def default_miner_image = "spacemeshos/go-spacemesh:787b038"
 
 def init_miner_image = "534354616613.dkr.ecr.us-east-1.amazonaws.com/spacemesh-testnet-miner-init:latest"
 
+/* Pipeline global vars */
+def miner_count
+def bootstrap_addr
+def bootstrap_pod
+def bootstrap_port
+def bootstrap_id
+
 /* Shell script snippets */
 def create_bootstrap_svc = {pool_id ->
   """
@@ -120,6 +127,107 @@ def bootstrap_manifest = {pool_id, miner_image ->
   """.stripIndent()
 }
 
+def worker_manifest = {pool_id, miner_image, worker_id ->
+  """
+  ---
+  apiVersion: apps/v1
+  kind: Deployment
+  metadata:
+    name: miner-${pool_id}-node-${worker_id}
+    labels:
+      app: miner
+      miner-pool: \"${pool_id}\"
+      miner-node: miner-${pool_id}-node-${worker_id}
+  spec:
+    replicas: 1
+    selector:
+      matchLabels:
+        app: miner
+    template:
+      metadata:
+        labels:
+          app: miner
+          miner-pool: \"${pool_id}\"
+          miner-node: miner-${pool_id}-node-${worker_id}
+      spec:
+        volumes:
+          - name: miner-storage
+            emptyDir: {}
+
+        initContainers:
+          - name: miner-init
+            image: \"${init_miner_image}\"
+            env:
+              - name: SPACEMESH_S3_BUCKET
+                valueFrom:
+                  configMapKeyRef:
+                    name: spacemesh-testnet-miner
+                    key: initdata_s3_bucket
+              - name: SPACEMESH_S3_PREFIX
+                valueFrom:
+                  configMapKeyRef:
+                    name: spacemesh-testnet-miner
+                    key: initdata_s3_prefix
+              - name: SPACEMESH_DYNAMODB_TABLE
+                valueFrom:
+                  configMapKeyRef:
+                    name: spacemesh-testnet-miner
+                    key: initdata_dynamodb_table
+              - name: SPACEMESH_DYNAMODB_REGION
+                valueFrom:
+                  configMapKeyRef:
+                    name: spacemesh-testnet-miner
+                    key: initdata_dynamodb_region
+              - name: SPACEMESH_WORKDIR
+                value: "/root"
+              - name: SPACEMESH_DATADIR
+                value: "./post/data"
+
+            volumeMounts:
+              - name: miner-storage
+                mountPath: /root
+
+        containers:
+          - name: default
+            image: \"${miner_image}\"
+            imagePullPolicy: "Always"
+            env:
+              - name: SPACEMESH_MINER_PORT
+                value: "9091"
+              - name: SPACEMESH_COINBASE
+                value: "0x1234"
+              - name: SPACEMESH_POET_GRPC
+                value: "spacemesh-testnet-poet-grpc-lb-f34cb9e80d3b5d58.elb.us-east-1.amazonaws.com:50002"
+            args: [ "--coinbase",    \$(SPACEMESH_COINBASE),
+                    "--poet-server", \$(SPACEMESH_POET_GRPC),
+                    "--bootnodes", \"${bootstrap_addr}:${bootstrap_port}/${bootstrap_id}\"
+                  ]
+            resources:
+              limits:
+                cpu: 1000m
+              requests:
+                cpu: 100m
+            volumeMounts:
+              - name: miner-storage
+                mountPath: /root
+  ---
+  apiVersion: v1
+  kind: Service
+  metadata:
+    name: miner-${pool_id}-worker-${worker_id}
+    labels:
+      app: miner
+      miner-pool: \"${pool_id}\"
+  spec:
+    type: NodePort
+    selector:
+      miner-node: miner-${pool_id}-node-${worker_id}
+    ports:
+    - protocol: TCP
+      port: 9091
+  """.stripIndent()
+}
+
 def get_svc_port = {svc ->
   """
   ${kubectl} get svc ${svc} --template '{{(index .spec.ports 0).nodePort}}'
@@ -145,12 +253,6 @@ def get_bootstrap_id = {pod ->
   """.stripIndent()
 }
 
-/* Pipeline global vars */
-def miner_count
-def bootstrap_addr
-def bootstrap_pod
-def bootstrap_port
-def bootstrap_id
 
 /*
   PIPELINE
@@ -234,6 +336,18 @@ pipeline {
           }
         }
         echo "Bootstrap ID: ${bootstrap_id}"
+      }
+    }
+
+    stage("Run workers") {
+      steps {
+        echo "Generate manifest for workers' Deployment & Service"
+        script {
+          manifest = (1..(miner_count-1)).collect({id -> worker_manifest(pool_id, params.MINER_IMAGE, id)}).join("\n")
+          writeFile file: "workers-${pool_id}.yml", text: manifest
+        }
+        echo "Creating workers' Deployment & Service"
+        sh """${kubectl} create -f workers-${pool_id}.yml"""
       }
     }
 

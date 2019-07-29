@@ -1,0 +1,25 @@
+/*
+  PIPELINE
+ */
+pipeline {
+  agent any
+
+  options {
+    buildDiscarder(logRotator(numToKeepStr: '5')) // Keep last 5 builds only
+  }
+
+  parameters {
+    string name: 'POOL_ID',     defaultValue: '', description: 'Miner pool id', trim: true
+  }
+
+  stages {
+    stage("Stopping miners") {
+      steps {
+        sh """kubectl delete svc,deploy -l miner-pool=${params.POOL_ID}"""
+      }
+    }
+  }
+
+}
+
+/* vim: set filetype=groovy ts=2 sw=2 et : */

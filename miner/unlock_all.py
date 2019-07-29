@@ -4,7 +4,7 @@
 import botocore.session
 from pprint import pprint,pformat
 
-dynamodb = botocore.session.get_session().create_client("dynamodb")
+dynamodb = botocore.session.get_session().create_client("dynamodb", region_name="us-east-1")
 SPACEMESH_DYNAMODB_TABLE = "initdata-testnet-us-east-1.spacemesh.io"
 
 for item in dynamodb.query(TableName=SPACEMESH_DYNAMODB_TABLE,

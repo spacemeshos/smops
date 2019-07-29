@@ -187,21 +187,12 @@ data-folder = "{SPACEMESH_FULL_DATADIR}"
 
 [p2p]
 tcp-port = {SPACEMESH_PORT_TCP}
-node-id = "{data_id}"
 new-node= false
 network-id = 1 # 0 - MainNet, 1 - TestNet
-#peers-file = "peers.json" # located under data-dir/<publickey>/<peer-file> not loaded or save if empty string is given.
-
-#[p2p.swarm]
-#bootstrap = false
-#bucketsize = 20 # Routing table bucket size
-#alpha = 3 # Routing table alpha
-#randcon = 2 # Number of random connections
-#bootnodes = [] # example : spacemesh://j7qWfWaJRVp25ZsnCu9rJ4PmhigZBtesB4YmQHqqPvt@0.0.0.0:7517?disc=7517
 
 [api]
-grpc-server = true
-grpc-port = {SPACEMESH_PORT_GRPC}
+#grpc-server = true
+#grpc-port = {SPACEMESH_PORT_GRPC}
 json-server = true
 json-port = {SPACEMESH_PORT_REST}
 """

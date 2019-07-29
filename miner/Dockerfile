@@ -1,18 +1,18 @@
 FROM alpine
 
 ### Install AWS CLI
-RUN apk update
 
 # Prefer bundled Python libraries
-RUN apk add \
-    python3 \
-    py3-docutils \
-    py3-dateutil \
-    py3-urllib3 \
-    py3-rsa \
-    py3-six
-RUN pip3 install --upgrade pip
-RUN pip3 install awscli~=1.16.0
+RUN apk update && \
+    apk add \
+        python3 \
+        py3-docutils \
+        py3-dateutil \
+        py3-urllib3 \
+        py3-rsa \
+        py3-six && \
+    pip3 install --upgrade pip &&\
+    pip3 install awscli~=1.16.0
 
 
 ### Default environment

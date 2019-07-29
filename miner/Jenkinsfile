@@ -128,6 +128,7 @@ def bootstrap_manifest = {pool_id, miner_image ->
 }
 
 def worker_manifest = {pool_id, miner_image, worker_id ->
+  def bootnodes = "spacemesh://${bootstrap_id}@${bootstrap_addr}:${bootstrap_port}?disport=${bootstrap_port}"
   """
   ---
   apiVersion: apps/v1
@@ -200,7 +201,7 @@ def worker_manifest = {pool_id, miner_image, worker_id ->
                 value: "spacemesh-testnet-poet-grpc-lb-f34cb9e80d3b5d58.elb.us-east-1.amazonaws.com:50002"
             args: [ "--coinbase",    \$(SPACEMESH_COINBASE),
                     "--poet-server", \$(SPACEMESH_POET_GRPC),
-                    "--bootnodes", \"${bootstrap_addr}:${bootstrap_port}/${bootstrap_id}\"
+                    "--bootnodes", \"${bootnodes}\"
                   ]
             resources:
               limits:

@@ -34,11 +34,6 @@ SPACEMESH_WORKDIR = os.environ.get("SPACEMESH_WORKDIR", "/home/spacemesh")
 # SPACEMESH_DATADIR - data directory, relative to SPACEMESH_WORKDIR
 SPACEMESH_DATADIR = os.environ.get("SPACEMESH_DATADIR", "./data")
 
-# Ports: TCP, gRPC, REST
-SPACEMESH_PORT_TCP = int(os.environ.get("SPACEMESH_PORT_TCP", 30000))
-SPACEMESH_PORT_GRPC = int(os.environ.get("SPACEMESH_PORT_GRPC", 30001))
-SPACEMESH_PORT_REST = int(os.environ.get("SPACEMESH_PORT_REST", 30002))
-
 # SPACEMESH_MAX_TRIES - max attempts to obtain a data file
 SPACEMESH_MAX_TRIES = int(os.environ.get("SPACEMESH_MAX_TRIES", 5))
 
@@ -186,15 +181,8 @@ config_toml = f"""\
 data-folder = "{SPACEMESH_FULL_DATADIR}"
 
 [p2p]
-tcp-port = {SPACEMESH_PORT_TCP}
 new-node= false
 network-id = 1 # 0 - MainNet, 1 - TestNet
-
-[api]
-#grpc-server = true
-#grpc-port = {SPACEMESH_PORT_GRPC}
-json-server = true
-json-port = {SPACEMESH_PORT_REST}
 """
 
 log.debug("config.toml:\n" + config_toml)

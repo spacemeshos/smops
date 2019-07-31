@@ -271,8 +271,7 @@ pipeline {
         script {
           def boot_node = "miner-${pool_id}-bootstrap"
           bootstrap_tcp_port = create_miner_services(pool_id, boot_node)
-          create_service("${boot_node}-grpc", pool_id, boot_node, "TCP", 9091)
-          bootstrap_grpc_port = get_service_port("${boot_node}-grpc")
+          bootstrap_grpc_port = create_service("${boot_node}-grpc", pool_id, boot_node, "TCP", 9091)
         }
 
         echo """\
@@ -369,10 +368,9 @@ pipeline {
   }
 }
 
-
 def create_service(svc, pool_id, node, proto, port) {
   echo "Writing service manifest for ${svc}"
-  writeFile file: "${svc}-svc.yml", text: """
+  writeFile file: "${svc}-svc.yml", text: """\
   ---
   apiVersion: v1
   kind: Service
@@ -390,41 +388,76 @@ def create_service(svc, pool_id, node, proto, port) {
       port: ${port}
   """.stripIndent()
 
-  echo "Creating service"
+  echo "Creating service ${svc}"
   sh """${kubectl} create -f ${svc}-svc.yml"""
+
+  echo "Getting allocated port"
+  return get_service_port(svc)
 }
 
 def get_service_port(svc) {
-  shell("""${kubectl} get svc ${svc} --template '{{(index .spec.ports 0).nodePort}}'""")
+  return shell("""${kubectl} get svc ${svc} --template '{{(index .spec.ports 0).nodePort}}'""")
 }
 
 def create_miner_services(pool_id, node) {
-  create_service("${node}-tcp", pool_id, node, "TCP", 9091)
+  def svc = "${node}"
 
-  echo "Getting allocated port"
-  def tcp_port = get_service_port("${node}-tcp")
-
-  echo "Patching ${node}-tcp targetPort to ${tcp_port}"
+  echo "Creating mock service for ${svc}"
   sh """\
-  ${kubectl} patch service ${node}-tcp \
-    -p '
-    [
-      {
-        "op": "replace",
-        "path":"/spec/ports/0/port",
-        \"value\": ${tcp_port}
-      },
-      {
-        "op": "replace",
-        "path":"/spec/ports/0/targetPort",
-        \"value\": ${tcp_port}
-      }
-    ]' --type json
+  ${kubectl} create -f - <<EOF
+  ---
+  apiVersion: v1
+  kind: Service
+  metadata:
+    name: mock-${svc}
+    labels:
+      app: miner
+  spec:
+    type: NodePort
+    ports:
+    - protocol: TCP
+      port: 7513
+  EOF
   """.stripIndent()
 
-  create_service("${node}-udp", pool_id, node, "UDP", tcp_port)
+  echo "Getting allocated port"
+  def port = get_service_port("mock-${svc}")
+  echo "Port: ${port}"
 
-  return tcp_port
+  echo "Deleting mock service"
+  sh """${kubectl} delete svc mock-${svc}"""
+
+  echo "Creating manifest for service ${svc}"
+  writeFile file: "${svc}-svc.yml", text: """
+  ---
+  apiVersion: v1
+  kind: Service
+  metadata:
+    name: ${svc}
+    labels:
+      app: miner
+      miner-pool: \"${pool_id}\"
+  spec:
+    type: NodePort
+    selector:
+      miner-node: \"${node}\"
+    ports:
+    - name: tcp-port
+      protocol: TCP
+      port: ${port}
+      nodePort: ${port}
+    - name: udp-port
+      protocol: UDP
+      port: ${port}
+      nodePort: ${port}
+  """.stripIndent()
+
+  sleep 1
+
+  echo "Creating service ${svc}"
+  sh """${kubectl} create -f ${svc}-svc.yml"""
+
+  return port
 }
 
 /* vim: set filetype=groovy ts=2 sw=2 et : */

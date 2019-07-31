@@ -14,7 +14,6 @@ def worker_ports = []
 def bootstrap_addr
 def bootstrap_pod
 def bootstrap_tcp_port
-def bootstrap_json_port
 def bootstrap_grpc_port
 def bootstrap_id
 def bootnodes
@@ -26,7 +25,7 @@ def get_bootstrap_pod = {pool_id ->
 }
 
 def bootstrap_manifest = {pool_id, miner_image ->
-  """
+  """\
   ---
   apiVersion: apps/v1
   kind: Deployment
@@ -76,6 +75,10 @@ def bootstrap_manifest = {pool_id, miner_image ->
                   configMapKeyRef:
                     name: spacemesh-testnet-miner
                     key: initdata_dynamodb_region
+              - name: SPACEMESH_WORKER_ID
+                valueFrom:
+                  fieldRef:
+                    fieldPath: metadata.name
               - name: SPACEMESH_WORKDIR
                 value: "/root"
               - name: SPACEMESH_DATADIR
@@ -94,18 +97,16 @@ def bootstrap_manifest = {pool_id, miner_image ->
                 value: \"${bootstrap_tcp_port}\"
               - name: SPACEMESH_GRPC_PORT
                 value: \"${bootstrap_grpc_port}\"
-              - name: SPACEMESH_JSON_PORT
-                value: \"${bootstrap_json_port}\"
               - name: SPACEMESH_COINBASE
                 value: \"${coin_base}\"
               - name: SPACEMESH_POET_GRPC
                 value: \"${poet_url}\"
             args: [ "--config", "/root/config.toml",
                     "--grpc-server", "--grpc-port", \$(SPACEMESH_GRPC_PORT),
-                    "--json-server", "--json-port", \$(SPACEMESH_JSON_PORT),
                     "--tcp-port",    \$(SPACEMESH_MINER_PORT),
                     "--coinbase",    \$(SPACEMESH_COINBASE),
                     "--poet-server", \$(SPACEMESH_POET_GRPC),
+                    "--genesis-time", \"${params.GENESIS_TIME}\",
                   ]
             resources:
               limits:
@@ -119,7 +120,7 @@ def bootstrap_manifest = {pool_id, miner_image ->
 }
 
 def worker_manifest = {pool_id, miner_image, worker_id, tcp_port, grpc_port, json_port ->
-  """
+  """\
   ---
   apiVersion: apps/v1
   kind: Deployment
@@ -169,6 +170,10 @@ def worker_manifest = {pool_id, miner_image, worker_id, tcp_port, grpc_port, jso
                   configMapKeyRef:
                     name: spacemesh-testnet-miner
                     key: initdata_dynamodb_region
+              - name: SPACEMESH_WORKER_ID
+                valueFrom:
+                  fieldRef:
+                    fieldPath: metadata.name
               - name: SPACEMESH_WORKDIR
                 value: "/root"
               - name: SPACEMESH_DATADIR
@@ -194,12 +199,11 @@ def worker_manifest = {pool_id, miner_image, worker_id, tcp_port, grpc_port, jso
               - name: SPACEMESH_POET_GRPC
                 value: \"${poet_url}\"
             args: [ "--config", "/root/config.toml",
-                    "--grpc-server", "--grpc-port", \$(SPACEMESH_GRPC_PORT),
-                    "--json-server", "--json-port", \$(SPACEMESH_JSON_PORT),
                     "--tcp-port", \$(SPACEMESH_MINER_PORT),
                     "--coinbase",    \$(SPACEMESH_COINBASE),
                     "--poet-server", \$(SPACEMESH_POET_GRPC),
-                    "--bootnodes", \"${bootnodes}\"
+                    "--genesis-time", \"${params.GENESIS_TIME}\",
+                    "--bootstrap", "--bootnodes", \"${bootnodes}\",
                   ]
             resources:
               limits:
@@ -213,19 +217,19 @@ def worker_manifest = {pool_id, miner_image, worker_id, tcp_port, grpc_port, jso
 }
 
 def get_node_inst_id = {node ->
-  """
+  """\
   ${kubectl} get node ${node} --template '{{.spec.providerID}}' | sed -e 's/.\\+\\///'
   """.stripIndent()
 }
 
 def get_instance_ip = {inst_id ->
-  """
+  """\
   aws ec2 describe-instances --region=${aws_region} --instance-ids ${inst_id} --query 'Reservations[0].Instances[0].PublicIpAddress' --output text
   """.stripIndent()
 }
 
 def get_bootstrap_id = {pod ->
-  """
+  """\
   ${kubectl} logs ${pod} --tail=-1 -f |\\
   sed -ne '/Local node identity / { s/.\\+Local node identity >> \\([a-zA-Z0-9]\\+\\).*/\\1/ ; p; q; }'
   """.stripIndent()
@@ -246,6 +250,7 @@ pipeline {
     string name: 'MINER_COUNT', defaultValue: '', description: 'Number of the miners to start', trim: true
     string name: 'MINER_IMAGE', defaultValue: default_miner_image, description: 'Miner pool id', trim: true
     string name: 'POOL_ID',     defaultValue: '', description: 'Miner pool id', trim: true
+    string name: 'GENESIS_TIME', defaultValue: '', description: 'Genesis time', trim: true
   }
 
   stages {
@@ -264,31 +269,23 @@ pipeline {
     stage("Create services") {
       steps {
         script {
-          bootstrap_tcp_port  = create_service(pool_id, "miner-${pool_id}-bootstrap", "tcp")
-          // Also add UDP service on the same port
-          create_udp_service(pool_id, "miner-${pool_id}-bootstrap", bootstrap_tcp_port)
-          bootstrap_json_port = create_service(pool_id, "miner-${pool_id}-bootstrap", "json")
-          bootstrap_grpc_port = create_service(pool_id, "miner-${pool_id}-bootstrap", "grpc")
+          def boot_node = "miner-${pool_id}-bootstrap"
+          bootstrap_tcp_port = create_miner_services(pool_id, boot_node)
+          create_service("${boot_node}-grpc", pool_id, boot_node, "TCP", 9091)
+          bootstrap_grpc_port = get_service_port("${boot_node}-grpc")
         }
 
         echo """\
           Bootstrap TCP/UDP port: ${bootstrap_tcp_port}
-          Bootstrap JSON port: ${bootstrap_json_port}
           Bootstrap GRPC port: ${bootstrap_grpc_port}""".stripIndent()
 
         script {
           for(i in (1..(miner_count-1)).collect()) {
             def ports = [
-                         tcp_port:  create_service(pool_id, "miner-${pool_id}-node-${i}", "tcp"),
-                         grpc_port: create_service(pool_id, "miner-${pool_id}-node-${i}", "grpc"),
-                         json_port: create_service(pool_id, "miner-${pool_id}-node-${i}", "json"),
+                         tcp_port: create_miner_services(pool_id, "miner-${pool_id}-node-${i}"),
                         ]
-            create_udp_service(pool_id, "miner-${pool_id}-node-${i}", ports.tcp_port)
             worker_ports.add(ports)
-            echo """\
-              Worker #${i} TCP/UDP port: ${ports.tcp_port}
-              Worker #${i} JSON port: ${ports.json_port}
-              Worker #${i} GRPC port: ${ports.grpc_port}""".stripIndent()
+            echo """Worker #${i} TCP/UDP port: ${ports.tcp_port}"""
           }
         }
       }
@@ -335,9 +332,13 @@ pipeline {
         echo "Bootstrap ID: ${bootstrap_id}"
 
         script {
-          bootnodes = "spacemesh://${bootstrap_id}@${bootstrap_addr}:${bootstrap_tcp_port}?disport=${bootstrap_tcp_port}"
+          bootnodes = "spacemesh://${bootstrap_id}@${bootstrap_addr}:${bootstrap_tcp_port}"
         }
-        echo "Bootstrap nodes: ${bootnodes}"
+
+        echo """\
+          Bootstrap nodes: ${bootnodes}
+          PoET --nodeaddr: ${bootstrap_addr}:${bootstrap_grpc_port}
+          """.stripIndent()
       }
     }
 
@@ -368,33 +369,8 @@ pipeline {
   }
 }
 
-def create_udp_service(pool_id, node, port) {
-  def name = "${node}-udp"
-  echo "Writing UDP service manifest for ${name}"
-  writeFile file: "${name}-svc.yml", text: """
-  ---
-  apiVersion: v1
-  kind: Service
-  metadata:
-    name: ${name}
-    labels:
-      app: miner
-      miner-pool: \"${pool_id}\"
-  spec:
-    type: NodePort
-    selector:
-      miner-node: \"${node}\"
-    ports:
-    - protocol: UDP
-      port: ${port}
-  """.stripIndent()
 
-  echo "Creating service"
-  sh """${kubectl} create -f ${name}-svc.yml"""
-}
-
-def create_service(pool_id, node, name) {
-  def svc = "${node}-${name}"
+def create_service(svc, pool_id, node, proto, port) {
   echo "Writing service manifest for ${svc}"
   writeFile file: "${svc}-svc.yml", text: """
   ---
@@ -410,35 +386,45 @@ def create_service(pool_id, node, name) {
     selector:
       miner-node: \"${node}\"
     ports:
-    - protocol: TCP
-      port: 9091
+    - protocol: ${proto.toUpperCase()}
+      port: ${port}
   """.stripIndent()
 
   echo "Creating service"
   sh """${kubectl} create -f ${svc}-svc.yml"""
+}
+
+def get_service_port(svc) {
+  shell("""${kubectl} get svc ${svc} --template '{{(index .spec.ports 0).nodePort}}'""")
+}
+
+def create_miner_services(pool_id, node) {
+  create_service("${node}-tcp", pool_id, node, "TCP", 9091)
 
   echo "Getting allocated port"
-  def port = shell("""${kubectl} get svc ${svc} --template '{{(index .spec.ports 0).nodePort}}'""")
+  def tcp_port = get_service_port("${node}-tcp")
 
-  echo "Patching ${svc} targetPort to ${port}"
+  echo "Patching ${node}-tcp targetPort to ${tcp_port}"
   sh """\
-  ${kubectl} patch service ${svc} \
+  ${kubectl} patch service ${node}-tcp \
     -p '
     [
       {
         "op": "replace",
         "path":"/spec/ports/0/port",
-        \"value\": ${port}
+        \"value\": ${tcp_port}
       },
       {
         "op": "replace",
         "path":"/spec/ports/0/targetPort",
-        \"value\": ${port}
+        \"value\": ${tcp_port}
       }
     ]' --type json
   """.stripIndent()
 
-  return port
+  create_service("${node}-udp", pool_id, node, "UDP", tcp_port)
+
+  return tcp_port
 }
 
 /* vim: set filetype=groovy ts=2 sw=2 et : */

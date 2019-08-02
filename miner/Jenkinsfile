@@ -4,6 +4,9 @@ kubectl = "kubectl --context=miner-${aws_region}"
 default_miner_image = "spacemeshos/go-spacemesh:787b038"
 init_miner_image    = "534354616613.dkr.ecr.us-east-1.amazonaws.com/spacemesh-testnet-miner-init:latest"
 
+/* FIXME: This assumes the time is in GMT */
+default_genesis_time = (new Date(currentBuild.startTimeInMillis + 600*1000)).format("yyyy-MM-dd'T'HH:mm:ss'+00:00'")
+
 /* FIXME: Move to ConfigMap */
 coin_base = "0x1234"
 poet_url  = "spacemesh-testnet-poet-grpc-lb-f34cb9e80d3b5d58.elb.us-east-1.amazonaws.com:50002"
@@ -17,6 +20,56 @@ def bootstrap_tcp_port
 def bootstrap_grpc_port
 def bootstrap_id
 def bootnodes
+
+def my_random_id = {->
+  rnd = new Random()
+
+  return {-> String.format("%06x",(rnd.nextFloat() * 2**31) as Integer)[0..5]}
+}()
+
+def create_service(svc, pool_id, node, proto, port) {
+  echo "Writing service manifest for ${svc}"
+  writeFile file: "${svc}-svc.yml", text: """\
+  ---
+  apiVersion: v1
+  kind: Service
+  metadata:
+    name: ${svc}
+    labels:
+      app: miner
+      miner-pool: \"${pool_id}\"
+  spec:
+    type: NodePort
+    selector:
+      miner-node: \"${node}\"
+    ports:
+    - protocol: ${proto.toUpperCase()}
+      port: ${port}
+  """.stripIndent()
+
+  echo "Creating service ${svc}"
+  sh """${kubectl} create -f ${svc}-svc.yml"""
+
+  echo "Getting allocated port"
+  return shell("""${kubectl} get svc ${svc} --template '{{(index .spec.ports 0).nodePort}}'""")
+}
+
+def random_ports(int ctr, int low=61000, int high=65535) {
+  def rand_port = {->
+    def rnd = new Random()
+    return {-> (low + (high-low)*rnd.nextFloat()) as int }
+  }()
+
+  def ports = []
+  (1..ctr).each({
+    def r = rand_port()
+    while(r in ports)
+      r = rand_port()
+    ports.add(r)
+  })
+
+  return ports
+}
 
 def get_bootstrap_pod = {pool_id ->
   """\
@@ -92,6 +145,15 @@ def bootstrap_manifest = {pool_id, miner_image ->
           - name: default
             image: \"${miner_image}\"
             imagePullPolicy: "Always"
+
+            ports:
+              - protocol: TCP
+                containerPort: ${bootstrap_tcp_port}
+                hostPort: ${bootstrap_tcp_port}
+              - protocol: UDP
+                containerPort: ${bootstrap_tcp_port}
+                hostPort: ${bootstrap_tcp_port}
+
             env:
               - name: SPACEMESH_MINER_PORT
                 value: \"${bootstrap_tcp_port}\"
@@ -119,7 +181,7 @@ def bootstrap_manifest = {pool_id, miner_image ->
   """.stripIndent()
 }
 
-def worker_manifest = {pool_id, miner_image, worker_id, tcp_port, grpc_port, json_port ->
+def worker_manifest = {pool_id, miner_image, worker_id, port ->
   """\
   ---
   apiVersion: apps/v1
@@ -187,13 +249,18 @@ def worker_manifest = {pool_id, miner_image, worker_id, tcp_port, grpc_port, jso
           - name: default
             image: \"${miner_image}\"
             imagePullPolicy: "Always"
+
+            ports:
+              - protocol: UDP
+                containerPort: ${port}
+                hostPort: ${port}
+              - protocol: TCP
+                containerPort: ${port}
+                hostPort: ${port}
+
             env:
               - name: SPACEMESH_MINER_PORT
-                value: \"${tcp_port}\"
-              - name: SPACEMESH_GRPC_PORT
-                value: \"${grpc_port}\"
-              - name: SPACEMESH_JSON_PORT
-                value: \"${json_port}\"
+                value: \"${port}\"
               - name: SPACEMESH_COINBASE
                 value: \"${coin_base}\"
               - name: SPACEMESH_POET_GRPC
@@ -235,7 +302,6 @@ def get_bootstrap_id = {pod ->
   """.stripIndent()
 }
 
-
 /*
   PIPELINE
  */
@@ -250,7 +316,7 @@ pipeline {
     string name: 'MINER_COUNT', defaultValue: '', description: 'Number of the miners to start', trim: true
     string name: 'MINER_IMAGE', defaultValue: default_miner_image, description: 'Miner pool id', trim: true
     string name: 'POOL_ID',     defaultValue: '', description: 'Miner pool id', trim: true
-    string name: 'GENESIS_TIME', defaultValue: '', description: 'Genesis time', trim: true
+    string name: 'GENESIS_TIME', defaultValue: default_genesis_time, description: 'Genesis time', trim: true
   }
 
   stages {
@@ -259,34 +325,26 @@ pipeline {
         script {
           miner_count = params.MINER_COUNT as int
           assert miner_count > 0
-          pool_id = params.POOL_ID ?: random_id()
+          pool_id = params.POOL_ID ?: my_random_id()
+          worker_ports = random_ports(miner_count + 1)
+          bootstrap_tcp_port = worker_ports.pop()
+          worker_ports.sort()
         }
         echo "Number of miners: ${miner_count}"
         echo "Miner pool ID: ${pool_id}"
+        echo "Bootstrap port: ${bootstrap_tcp_port}"
+        echo "Miner ports: ${worker_ports}"
       }
     }
 
-    stage("Create services") {
+    stage("Create bootstrap gRPC service") {
       steps {
         script {
           def boot_node = "miner-${pool_id}-bootstrap"
-          bootstrap_tcp_port = create_miner_services(pool_id, boot_node)
           bootstrap_grpc_port = create_service("${boot_node}-grpc", pool_id, boot_node, "TCP", 9091)
         }
 
-        echo """\
-          Bootstrap TCP/UDP port: ${bootstrap_tcp_port}
-          Bootstrap GRPC port: ${bootstrap_grpc_port}""".stripIndent()
-
-        script {
-          for(i in (1..(miner_count-1)).collect()) {
-            def ports = [
-                         tcp_port: create_miner_services(pool_id, "miner-${pool_id}-node-${i}"),
-                        ]
-            worker_ports.add(ports)
-            echo """Worker #${i} TCP/UDP port: ${ports.tcp_port}"""
-          }
-        }
+        echo "Bootstrap GRPC port: ${bootstrap_grpc_port}"
       }
     }
 
@@ -335,8 +393,8 @@ pipeline {
         }
 
         echo """\
-          Bootstrap nodes: ${bootnodes}
-          PoET --nodeaddr: ${bootstrap_addr}:${bootstrap_grpc_port}
+          >>> Bootstrap nodes: ${bootnodes}
+          >>> PoET --nodeaddr: ${bootstrap_addr}:${bootstrap_grpc_port}
           """.stripIndent()
       }
     }
@@ -344,15 +402,11 @@ pipeline {
     stage("Create workers") {
       steps {
         script {
-          worker_ports.eachWithIndex({ports, i ->
+          worker_ports.eachWithIndex({port, i ->
             i++
             echo "Generating manifest for worker #${i}"
             writeFile file: "miner-${pool_id}-node-${i}-deploy.yml", \
-                      text: worker_manifest(pool_id, params.MINER_IMAGE, i,
-                                            ports.tcp_port,
-                                            ports.grpc_port,
-                                            ports.json_port,
-                                            )
+                      text: worker_manifest(pool_id, params.MINER_IMAGE, i, port)
             echo "Creating Deployment for worker #${i}"
             sh """${kubectl} create -f miner-${pool_id}-node-${i}-deploy.yml"""
           })
@@ -366,98 +420,6 @@ pipeline {
       }
     }
   }
-}
-
-def create_service(svc, pool_id, node, proto, port) {
-  echo "Writing service manifest for ${svc}"
-  writeFile file: "${svc}-svc.yml", text: """\
-  ---
-  apiVersion: v1
-  kind: Service
-  metadata:
-    name: ${svc}
-    labels:
-      app: miner
-      miner-pool: \"${pool_id}\"
-  spec:
-    type: NodePort
-    selector:
-      miner-node: \"${node}\"
-    ports:
-    - protocol: ${proto.toUpperCase()}
-      port: ${port}
-  """.stripIndent()
-
-  echo "Creating service ${svc}"
-  sh """${kubectl} create -f ${svc}-svc.yml"""
-
-  echo "Getting allocated port"
-  return get_service_port(svc)
-}
-
-def get_service_port(svc) {
-  return shell("""${kubectl} get svc ${svc} --template '{{(index .spec.ports 0).nodePort}}'""")
-}
-
-def create_miner_services(pool_id, node) {
-  def svc = "${node}"
-
-  echo "Creating mock service for ${svc}"
-  sh """\
-  ${kubectl} create -f - <<EOF
-  ---
-  apiVersion: v1
-  kind: Service
-  metadata:
-    name: mock-${svc}
-    labels:
-      app: miner
-  spec:
-    type: NodePort
-    ports:
-    - protocol: TCP
-      port: 7513
-  EOF
-  """.stripIndent()
-
-  echo "Getting allocated port"
-  def port = get_service_port("mock-${svc}")
-  echo "Port: ${port}"
-
-  echo "Deleting mock service"
-  sh """${kubectl} delete svc mock-${svc}"""
-
-  echo "Creating manifest for service ${svc}"
-  writeFile file: "${svc}-svc.yml", text: """
-  ---
-  apiVersion: v1
-  kind: Service
-  metadata:
-    name: ${svc}
-    labels:
-      app: miner
-      miner-pool: \"${pool_id}\"
-  spec:
-    type: NodePort
-    selector:
-      miner-node: \"${node}\"
-    ports:
-    - name: tcp-port
-      protocol: TCP
-      port: ${port}
-      nodePort: ${port}
-    - name: udp-port
-      protocol: UDP
-      port: ${port}
-      nodePort: ${port}
-  """.stripIndent()
-
-  sleep 1
-
-  echo "Creating service ${svc}"
-  sh """${kubectl} create -f ${svc}-svc.yml"""
-
-  return port
 }
 
 /* vim: set filetype=groovy ts=2 sw=2 et : */

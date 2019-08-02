@@ -2,6 +2,7 @@
 # -*- coding: UTF-8 -*-
 
 from datetime import datetime
+from glob import glob
 import logging
 import os
 from pprint import pformat
@@ -28,6 +29,9 @@ log.debug("Level set to {}".format(log.level))
 logging.getLogger("botocore").setLevel(logging.INFO)
 
 ### Set parameters
+# SPACEMESH_WORKER_ID - worker ID to recover the same dataset
+SPACEMESH_WORKER_ID = os.environ.get("SPACEMESH_WORKER_ID", "")
+
 # SPACEMESH_WORKDIR - working directory
 SPACEMESH_WORKDIR = os.environ.get("SPACEMESH_WORKDIR", "/home/spacemesh")
 
@@ -54,36 +58,49 @@ SPACEMESH_S3_PREFIX = os.environ.get("SPACEMESH_S3_PREFIX", "")
 SPACEMESH_DYNAMODB_TABLE = os.environ.get("SPACEMESH_DYNAMODB_TABLE", "initdata")
 SPACEMESH_DYNAMODB_REGION = os.environ.get("SPACEMESH_DYNAMODB_REGION", "us-east-1")
 
-### Get (FIXME: a random?) an unlocked InitData from DynamoDB
-dynamodb = botocore.session.get_session().create_client("dynamodb", region_name=SPACEMESH_DYNAMODB_REGION)
 
+### Check if the data is already retrieved (pod restarted)
+if glob(os.path.join(SPACEMESH_DATADIR, "*")):
+    log.info("There is something in the data dir already, not retrieving new data")
+    raise SystemExit(0)
+
+
+### Get the data set to work with
+dynamodb = botocore.session.get_session().create_client("dynamodb", region_name=SPACEMESH_DYNAMODB_REGION)
 data_id = None
 
-for i in range(SPACEMESH_MAX_TRIES):
-    log.info("Getting an unused data file, try #{}".format(i+1))
+# Check if there is already a data set allocated for us from previous run (pre-crash)
+log.info("Checking metadata table to see if there is a dataset locked by '{}'".format(SPACEMESH_WORKER_ID))
 
-    log.info("Querying the metadata table")
-    rnd = randint(1, 2**32-1)
-    try:
-        log.debug("Fetch the first item above the threshold {}".format(rnd))
-        r = dynamodb.query(TableName=SPACEMESH_DYNAMODB_TABLE, IndexName="locked_random",
-                           KeyConditionExpression="locked = :false AND random_sort_key > :rnd",
-                           ExpressionAttributeValues={
-                               ":false": {"N": "0"},
-                               ":rnd":   {"N": str(rnd)},
-                           },
-                           ProjectionExpression="id",
-                           Limit=1,
-                           )
-    except Exception as e:
-        log.fatal("Caught exception: {}".format(e))
-        raise SystemExit(1)
+try:
+    r = dynamodb.query(TableName=SPACEMESH_DYNAMODB_TABLE, IndexName="locked_by",
+                       KeyConditionExpression="locked_by = :myid",
+                       ExpressionAttributeValues={
+                         ":myid": {"S": SPACEMESH_WORKER_ID},
+                       },
+                       ProjectionExpression="id",
+                       Limit=1,
+                       )
+except Exception as e:
+    log.fatal("Caught exception: {}".format(e))
+    raise SystemExit(1)
 
-    if r["Count"] == 0:
+if r["Count"] > 0:
+    # Get the data id
+    data_id = r["Items"][0]["id"]["S"]
+else:
+    log.info("No locked data set found, getting a new one")
+
+    # Get a random unlocked InitData from DynamoDB
+    for i in range(SPACEMESH_MAX_TRIES):
+        log.info("Getting an unused data file, try #{}".format(i+1))
+
+        log.info("Querying the metadata table")
+        rnd = randint(1, 2**32-1)
         try:
-            log.debug("Fetch the first item BELOW the threshold {} - nothing ABOVE it found".format(rnd))
+            log.debug("Fetch the first item above the threshold {}".format(rnd))
             r = dynamodb.query(TableName=SPACEMESH_DYNAMODB_TABLE, IndexName="locked_random",
-                               KeyConditionExpression="locked = :false AND random_sort_key < :rnd",
+                               KeyConditionExpression="locked = :false AND random_sort_key > :rnd",
                                ExpressionAttributeValues={
                                    ":false": {"N": "0"},
                                    ":rnd":   {"N": str(rnd)},
@@ -95,45 +112,65 @@ for i in range(SPACEMESH_MAX_TRIES):
             log.fatal("Caught exception: {}".format(e))
             raise SystemExit(1)
 
-    if r["Count"] == 0:
-        log.info("No unused init data files found, exiting normally")
-        raise SystemExit(0)
+        if r["Count"] == 0:
+            try:
+                log.debug("Fetch the first item BELOW the threshold {} - nothing ABOVE it found".format(rnd))
+                r = dynamodb.query(TableName=SPACEMESH_DYNAMODB_TABLE, IndexName="locked_random",
+                                   KeyConditionExpression="locked = :false AND random_sort_key <= :rnd",
+                                   ExpressionAttributeValues={
+                                       ":false": {"N": "0"},
+                                       ":rnd":   {"N": str(rnd)},
+                                   },
+                                   ProjectionExpression="id",
+                                   Limit=1,
+                                   )
+            except Exception as e:
+                log.fatal("Caught exception: {}".format(e))
+                raise SystemExit(1)
 
-    # Get the data id
-    data_id = r["Items"][0]["id"]["S"]
-    log.info("Will proceed with data file '{}'".format(data_id))
+        if r["Count"] == 0:
+            log.info("No unused init data files found, exiting normally")
+            raise SystemExit(0)
 
-    ### Lock the entry
-    log.info("Locking data file '{}'".format(data_id))
+        # Get the data id
+        data_id = r["Items"][0]["id"]["S"]
+        log.info("Will proceed with data file '{}'".format(data_id))
 
-    try:
-        dynamodb.update_item(TableName=SPACEMESH_DYNAMODB_TABLE,
-                             Key={"id": {"S": data_id}},
-                             ConditionExpression="locked = :false",
-                             UpdateExpression="SET locked = :true",
-                             ExpressionAttributeValues={
-                                 ":false": {"N": "0"},
-                                 ":true": {"N": "1"},
-                             },
-                             )
-    except Exception as e:
-        if issubclass(type(e), botocore.exceptions.ClientError) and \
-           e.response["Error"]["Code"] == "ConditionalCheckFailedException":
-               log.info("Someone already grabbed '{}' data file, retrying if possible".format(data_id))
-               sleep(randrange(2, 10))
-               continue
+        ### Lock the entry
+        log.info("Locking data file '{}'".format(data_id))
 
-        log.fatal("Caught exception: {}".format(e))
-        raise SystemExit(1)
+        try:
+            dynamodb.update_item(TableName=SPACEMESH_DYNAMODB_TABLE,
+                                 Key={"id": {"S": data_id}},
+                                 ConditionExpression="locked = :false",
+                                 UpdateExpression="SET locked = :true, locked_by = :myid",
+                                 ExpressionAttributeValues={
+                                     ":false": {"N": "0"},
+                                     ":true": {"N": "1"},
+                                     ":myid": {"S": SPACEMESH_WORKER_ID},
+                                 },
+                                 )
+        except Exception as e:
+            if issubclass(type(e), botocore.exceptions.ClientError) and \
+               e.response["Error"]["Code"] == "ConditionalCheckFailedException":
+                   log.info("Someone already grabbed '{}' data file, retrying if possible".format(data_id))
+                   sleep(randrange(2, 10))
+                   continue
 
-    log.info("Successfully locked data file '{}' after {} tries".format(data_id, i+1))
-    break
+            log.fatal("Caught exception: {}".format(e))
+            raise SystemExit(1)
 
-# Exit if no data file could be locked
+        log.info("Successfully locked data file '{}' after {} tries".format(data_id, i+1))
+        break
+
+
+# Exit if no data file could be found
 if data_id is None:
-    log.fatal("Couldn't obtain a lock on an unused data file after {} tries".format(SPACEMESH_MAX_TRIES))
+    log.fatal("Couldn't obtain a data file")
     raise SystemExit(2)
 
+### Report the result
+log.info("Will proceed with data file '{}'".format(data_id))
 
 ### Transfer the files from S3
 s3 = botocore.session.get_session().create_client("s3")

@@ -83,6 +83,21 @@ def get_bootstrap_pod = {pool_id ->
 def bootstrap_manifest = {pool_id, miner_image ->
   """\
   ---
+  apiVersion: v1
+  kind: PersistentVolumeClaim
+  metadata:
+    name: miner-${pool_id}-pvc-bootstrap
+    labels:
+      app: miner
+      miner-pool: \"${pool_id}\"
+      miner-node: miner-${pool_id}-bootstrap
+  spec:
+    storageClassName: gp2-delayed
+    accessModes: [ ReadWriteOnce ]
+    resources:
+      requests:
+        storage: ${SPACEMESH_VOL_SIZE}Gi
+  ---
   apiVersion: apps/v1
   kind: Deployment
   metadata:
@@ -105,7 +120,8 @@ def bootstrap_manifest = {pool_id, miner_image ->
       spec:
         volumes:
           - name: miner-storage
-            emptyDir: {}
+            persistentVolumeClaim:
+              claimName: miner-${pool_id}-pvc-bootstrap
 
         initContainers:
           - name: miner-init
@@ -187,6 +203,21 @@ def bootstrap_manifest = {pool_id, miner_image ->
 def worker_manifest = {pool_id, miner_image, worker_id, port ->
   """\
   ---
+  apiVersion: v1
+  kind: PersistentVolumeClaim
+  metadata:
+    name: miner-${pool_id}-pvc-${worker_id}
+    labels:
+      app: miner
+      miner-pool: \"${pool_id}\"
+      miner-node: miner-${pool_id}-node-${worker_id}
+  spec:
+    storageClassName: gp2-delayed
+    accessModes: [ ReadWriteOnce ]
+    resources:
+      requests:
+        storage: ${SPACEMESH_VOL_SIZE}Gi
+  ---
   apiVersion: apps/v1
   kind: Deployment
   metadata:
@@ -209,7 +240,8 @@ def worker_manifest = {pool_id, miner_image, worker_id, port ->
       spec:
         volumes:
           - name: miner-storage
-            emptyDir: {}
+            persistentVolumeClaim:
+              claimName: miner-${pool_id}-pvc-${worker_id}
 
         initContainers:
           - name: miner-init
@@ -320,6 +352,7 @@ pipeline {
     string name: 'MINER_IMAGE', defaultValue: default_miner_image, description: 'Miner pool id', trim: true
     string name: 'POOL_ID',     defaultValue: '', description: 'Miner pool id', trim: true
     string name: 'GENESIS_TIME', defaultValue: default_genesis_time, description: 'Genesis time', trim: true
+    string(name: 'SPACEMESH_VOL_SIZE', defaultValue: '10',      description: 'Init job volume space')
   }
 
   stages {
@@ -327,7 +360,11 @@ pipeline {
       steps {
         script {
           miner_count = params.MINER_COUNT as int
+          SPACEMESH_VOL_SIZE = SPACEMESH_VOL_SIZE as int
+
+          assert SPACEMESH_VOL_SIZE > 5
           assert miner_count > 0
+
           pool_id = params.POOL_ID ?: random_id()
           worker_ports = random_ports(miner_count + 1)
           bootstrap_tcp_port = worker_ports.pop()

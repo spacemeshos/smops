@@ -64,7 +64,7 @@ pipeline {
           }
 
           // Generate a random job id
-          job_id = sprintf("%08x", (2**31*Math.random()).toInteger())
+          job_id = String.format("%08x", (new Random()).nextInt())
         }
       }
     }

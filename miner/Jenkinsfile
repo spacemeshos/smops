@@ -21,7 +21,13 @@ def bootstrap_grpc_port
 def bootstrap_id
 def bootnodes
 
-def my_random_id = {->
+/* Library function: call script and return stdout */
+def shell(cmd) {
+  return sh(returnStdout: true, script: cmd).trim()
+}
+
+/* Library function: generate random hex string */
+def random_id = {->
   rnd = new Random()
 
   return {-> String.format("%06x",(rnd.nextFloat() * 2**31) as Integer)[0..5]}
@@ -49,9 +55,6 @@ def create_service(svc, pool_id, node, proto, port) {
 
   echo "Creating service ${svc}"
   sh """${kubectl} create -f ${svc}-svc.yml"""
-
-  echo "Getting allocated port"
-  return shell("""${kubectl} get svc ${svc} --template '{{(index .spec.ports 0).nodePort}}'""")
 }
 
 def random_ports(int ctr, int low=61000, int high=65535) {
@@ -325,7 +328,7 @@ pipeline {
         script {
           miner_count = params.MINER_COUNT as int
           assert miner_count > 0
-          pool_id = params.POOL_ID ?: my_random_id()
+          pool_id = params.POOL_ID ?: random_id()
           worker_ports = random_ports(miner_count + 1)
           bootstrap_tcp_port = worker_ports.pop()
           worker_ports.sort()
@@ -341,7 +344,11 @@ pipeline {
       steps {
         script {
           def boot_node = "miner-${pool_id}-bootstrap"
-          bootstrap_grpc_port = create_service("${boot_node}-grpc", pool_id, boot_node, "TCP", 9091)
+          create_service("${boot_node}-grpc", pool_id, boot_node, "TCP", 9091)
+
+          echo "Getting allocated port"
+          bootstrap_grpc_port = shell("""\
+            ${kubectl} get svc ${boot_node}-grpc --template '{{(index .spec.ports 0).nodePort}}'""")
         }
 
         echo "Bootstrap GRPC port: ${bootstrap_grpc_port}"

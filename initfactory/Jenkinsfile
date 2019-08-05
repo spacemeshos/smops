@@ -81,7 +81,7 @@ pipeline {
                 labels:
                   app: initfactory
                   init-job: \"${job_id}\"
-                  worker-id: \"${job_id}-${i}\"
+                  worker-id: initfactory-\"${job_id}-job-${i}\"
               spec:
                 storageClassName: gp2-delayed
                 accessModes: [ ReadWriteOnce ]
@@ -96,7 +96,7 @@ pipeline {
                 labels:
                   app: initfactory
                   init-job: \"${job_id}\"
-                  worker-id: \"${job_id}-${i}\"
+                  worker-id: initfactory-\"${job_id}-job-${i}\"
               spec:
                 template:
                   metadata:

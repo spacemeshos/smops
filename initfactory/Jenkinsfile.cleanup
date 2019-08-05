@@ -35,7 +35,7 @@ pipeline {
       steps {
         script {
           job_list.each({job ->
-            sh """${kubectl} delete job ${job}"""
+            sh """${kubectl} delete pvc,job -l app=initfactory,worker_id=${job}"""
           })
         }
       }

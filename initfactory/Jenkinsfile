@@ -35,6 +35,7 @@ pipeline {
     string(name: 'INIT_COUNT',         defaultValue: '10',      description: 'Init tasks(jobs) count')
     string(name: 'SPACEMESH_FILESIZE', defaultValue: '1048576', description: 'Init file size')
     string(name: 'SPACEMESH_SPACE',    defaultValue: '1048576', description: 'Init file space size')
+    string(name: 'SPACEMESH_VOL_SIZE', defaultValue: '10',      description: 'Init job volume space')
     string(name: 'SPACEMESH_ID',       defaultValue: '',        description: 'Miner ID')
   }
 
@@ -48,6 +49,10 @@ pipeline {
           INIT_COUNT = INIT_COUNT as int
           SPACEMESH_SPACE = SPACEMESH_SPACE as int
           SPACEMESH_FILESIZE = SPACEMESH_FILESIZE as int
+          SPACEMESH_VOL_SIZE = SPACEMESH_VOL_SIZE as int
+
+          assert SPACEMESH_VOL_SIZE > 5
+          assert SPACEMESH_SPACE % SPACEMESH_FILESIZE == 0
 
           // If miner ID is given - then run a single job
           if(SPACEMESH_ID != "") {
@@ -65,68 +70,97 @@ pipeline {
         script {
           (1..INIT_COUNT).collect().each({i ->
             k8s_manifest = """\
-               ---
-               apiVersion: batch/v1
-               kind: Job
-               metadata:
-                 name: initfactory-${job_id}-worker-${i}
-                 labels:
-                   app: initfactory
-                   init-job: \"${job_id}\"
-                   worker-id: \"${job_id}-${i}\"
-               spec:
-                 template:
-                   metadata:
-                     labels:
-                       app: initfactory
-                   spec:
-                     tolerations:
-                       - effect: NoExecute
-                         key: dedicated
-                         operator: Equal
-                         value: InitFactory
-                     nodeSelector:
-                       pool: InitFactory
-                     containers:
-                       - name: default
-                         image: "${initfactory_image}"
-                         env:
-                           - name: SPACEMESH_S3_BUCKET
-                             valueFrom:
-                               configMapKeyRef:
-                                 name: initfactory
-                                 key: initdata_s3_bucket
-                           - name: SPACEMESH_S3_PREFIX
-                             valueFrom:
-                               configMapKeyRef:
-                                 name: initfactory
-                                 key: initdata_s3_prefix
-                           - name: SPACEMESH_DYNAMODB_TABLE
-                             valueFrom:
-                               configMapKeyRef:
-                                 name: initfactory
-                                 key: initdata_dynamodb_table
-                           - name: SPACEMESH_DYNAMODB_REGION
-                             valueFrom:
-                               configMapKeyRef:
-                                 name: initfactory
-                                 key: initdata_dynamodb_region
-                           - name: SPACEMESH_FILESIZE
-                             value: "${SPACEMESH_FILESIZE}"
-                           - name: SPACEMESH_SPACE
-                             value: "${SPACEMESH_SPACE}"
-                           - name: SPACEMESH_ID
-                             value: "${SPACEMESH_ID}"
-                         resources:
-                           requests:
-                             cpu: "${cpu_requests}"
-                           limits:
-                             cpu: "${cpu_limits}"
-                     restartPolicy: Never
-                 backoffLimit: ${backoff_limit}
-               """.stripIndent()
+              ---
+              apiVersion: v1
+              kind: PersistentVolumeClaim
+              metadata:
+                name: initfactory-${job_id}-pvc-${i}
+                labels:
+                  app: initfactory
+                  init-job: \"${job_id}\"
+                  worker-id: \"${job_id}-${i}\"
+              spec:
+                storageClassName: gp2-delayed
+                accessModes: [ ReadWriteOnce ]
+                resources:
+                  requests:
+                    storage: ${SPACEMESH_VOL_SIZE}Gi
+              ---
+              apiVersion: batch/v1
+              kind: Job
+              metadata:
+                name: initfactory-${job_id}-job-${i}
+                labels:
+                  app: initfactory
+                  init-job: \"${job_id}\"
+                  worker-id: \"${job_id}-${i}\"
+              spec:
+                template:
+                  metadata:
+                    labels:
+                      app: initfactory
+                  spec:
+                    tolerations:
+                      - effect: NoExecute
+                        key: dedicated
+                        operator: Equal
+                        value: InitFactory
+                    nodeSelector:
+                      pool: InitFactory
+                    volumes:
+                      - name: data-storage
+                        persistentVolumeClaim:
+                          claimName: initfactory-${job_id}-pvc-${i}
+                    initContainers:
+                      - name: init
+                        image: alpine:3.10.1
+                        volumeMounts:
+                          - mountPath: /home
+                            name: data-storage
+                        command: [ /bin/sh, -c, "adduser -D spacemesh" ]
+                    containers:
+                      - name: default
+                        image: "${initfactory_image}"
+                        env:
+                          - name: SPACEMESH_S3_BUCKET
+                            valueFrom:
+                              configMapKeyRef:
+                                name: initfactory
+                                key: initdata_s3_bucket
+                          - name: SPACEMESH_S3_PREFIX
+                            valueFrom:
+                              configMapKeyRef:
+                                name: initfactory
+                                key: initdata_s3_prefix
+                          - name: SPACEMESH_DYNAMODB_TABLE
+                            valueFrom:
+                              configMapKeyRef:
+                                name: initfactory
+                                key: initdata_dynamodb_table
+                          - name: SPACEMESH_DYNAMODB_REGION
+                            valueFrom:
+                              configMapKeyRef:
+                                name: initfactory
+                                key: initdata_dynamodb_region
+                          - name: SPACEMESH_FILESIZE
+                            value: "${SPACEMESH_FILESIZE}"
+                          - name: SPACEMESH_SPACE
+                            value: "${SPACEMESH_SPACE}"
+                          - name: SPACEMESH_ID
+                            value: "${SPACEMESH_ID}"
+                        volumeMounts:
+                          - mountPath: /home
+                            name: data-storage
+                        resources:
+                          requests:
+                            cpu: "${cpu_requests}"
+                          limits:
+                            cpu: "${cpu_limits}"
+                    restartPolicy: Never
+                backoffLimit: ${backoff_limit}
+              """.stripIndent()
             echo k8s_manifest
-            writeFile file: "manifest-${job_id}-worker-${i}.yml", text: k8s_manifest
+            writeFile file: "initfactory-${job_id}-job-${i}.yml", text: k8s_manifest
           })
         }
       }
@@ -136,7 +170,7 @@ pipeline {
       steps {
         script {
           (1..INIT_COUNT).collect().each({i ->
-            sh """kubectl apply -f manifest-${job_id}-worker-${i}.yml"""
+            sh """kubectl apply -f initfactory-${job_id}-job-${i}.yml"""
           })
         }
       }
@@ -144,7 +178,7 @@ pipeline {
 
     stage('Archive manifest') {
       steps {
-        archiveArtifacts "manifest-${job_id}-*.yml"
+        archiveArtifacts "initfactory-${job_id}-*.yml"
       }
     }
   }

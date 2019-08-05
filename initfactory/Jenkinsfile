@@ -1,3 +1,6 @@
+/* kubectl command */
+def kubectl = "kubectl --context=initfactory"
+
 /* Container image to use */
 def initfactory_image = "534354616613.dkr.ecr.us-east-1.amazonaws.com/spacemesh-testnet-initfactory:latest"
 
@@ -170,7 +173,7 @@ pipeline {
       steps {
         script {
           (1..INIT_COUNT).collect().each({i ->
-            sh """kubectl apply -f initfactory-${job_id}-job-${i}.yml"""
+            sh """${kubectl} apply -f initfactory-${job_id}-job-${i}.yml"""
           })
         }
       }

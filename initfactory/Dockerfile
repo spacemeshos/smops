@@ -1,4 +1,4 @@
-FROM spacemeshos/post
+FROM spacemeshos/post:latest
 
 ### Run as user root
 USER root
@@ -17,7 +17,7 @@ RUN apk update && apk add \
     pip3 install awscli~=1.16.0
 
 # Create unprivileged user
-RUN adduser -D spacemesh
+#RUN adduser -D spacemesh
 
 # Install the wrapper
 COPY --chown=spacemesh:spacemesh wrapper.py /bin/spacemesh-wrapper.py
@@ -27,7 +27,7 @@ RUN chmod 0755 /bin/spacemesh-wrapper.py
 USER spacemesh
 WORKDIR /home/spacemesh
 
-ENV SPACEMESH_INIT "/bin/init"
+ENV SPACEMESH_INIT "/bin/spacemesh-init"
 
 # Ensure data dir exists
 RUN mkdir -p data

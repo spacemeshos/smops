@@ -4,9 +4,6 @@ kubectl = "kubectl --context=miner-${aws_region}"
 default_miner_image = "spacemeshos/go-spacemesh:787b038"
 init_miner_image    = "534354616613.dkr.ecr.us-east-1.amazonaws.com/spacemesh-testnet-miner-init:latest"
 
-/* FIXME: This assumes the time is in GMT */
-default_genesis_time = (new Date(currentBuild.startTimeInMillis + 600*1000)).format("yyyy-MM-dd'T'HH:mm:ss'+00:00'")
-
 /* FIXME: Move to ConfigMap */
 coin_base = "0x1234"
 poet_url  = "spacemesh-testnet-poet-grpc-lb-f34cb9e80d3b5d58.elb.us-east-1.amazonaws.com:50002"
@@ -187,7 +184,7 @@ def bootstrap_manifest = {pool_id, miner_image ->
                     "--tcp-port",    \$(SPACEMESH_MINER_PORT),
                     "--coinbase",    \$(SPACEMESH_COINBASE),
                     "--poet-server", \$(SPACEMESH_POET_GRPC),
-                    "--genesis-time", \"${params.GENESIS_TIME}\",
+                    "--genesis-time", \"${SPACEMESH_GENESIS_TIME}\",
                   ]
             resources:
               limits:
@@ -304,7 +301,7 @@ def worker_manifest = {pool_id, miner_image, worker_id, port ->
                     "--tcp-port", \$(SPACEMESH_MINER_PORT),
                     "--coinbase",    \$(SPACEMESH_COINBASE),
                     "--poet-server", \$(SPACEMESH_POET_GRPC),
-                    "--genesis-time", \"${params.GENESIS_TIME}\",
+                    "--genesis-time", \"${SPACEMESH_GENESIS_TIME}\",
                     "--bootstrap", "--bootnodes", \"${bootnodes}\",
                   ]
             resources:
@@ -351,7 +348,8 @@ pipeline {
     string name: 'MINER_COUNT', defaultValue: '', description: 'Number of the miners to start', trim: true
     string name: 'MINER_IMAGE', defaultValue: default_miner_image, description: 'Miner pool id', trim: true
     string name: 'POOL_ID',     defaultValue: '', description: 'Miner pool id', trim: true
-    string name: 'GENESIS_TIME', defaultValue: default_genesis_time, description: 'Genesis time', trim: true
+    string name: 'GENESIS_TIME',  defaultValue: '', description: 'Genesis time', trim: true
+    string name: 'GENESIS_DELAY', defaultValue: '5', description: 'Genesis delay from now, minutes', trim: true
     string(name: 'SPACEMESH_VOL_SIZE', defaultValue: '10',      description: 'Init job volume space')
   }
 
@@ -364,6 +362,8 @@ pipeline {
 
           assert SPACEMESH_VOL_SIZE > 5
           assert miner_count > 0
+
+          SPACEMESH_GENESIS_TIME = params.GENESIS_TIME ?: (new Date(currentBuild.startTimeInMillis + (params.GENESIS_DELAY as int)*60*1000)).format("yyyy-MM-dd'T'HH:mm:ss'+00:00'")
 
           pool_id = params.POOL_ID ?: random_id()
           worker_ports = random_ports(miner_count + 1)
@@ -437,6 +437,7 @@ pipeline {
         }
 
         echo """\
+          >>> Genesis time: ${SPACEMESH_GENESIS_TIME}
           >>> Bootstrap nodes: ${bootnodes}
           >>> PoET --nodeaddr: ${bootstrap_addr}:${bootstrap_grpc_port}
           """.stripIndent()

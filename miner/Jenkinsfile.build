@@ -1,0 +1,43 @@
+aws_region = 'us-east-1'
+
+docker_image = 'spacemeshos-testnet-miner-init'
+docker_tag = 'latest'
+docker_repo = '534354616613.dkr.ecr.us-east-1.amazonaws.com/spacemesh-testnet-miner-init'
+
+/*
+  PIPELINE
+ */
+pipeline {
+  agent any
+
+  options {
+    buildDiscarder(logRotator(numToKeepStr: '10')) // Keep last 10 builds only
+  }
+
+  stages {
+    stage("Checkout") {
+      steps {
+        checkout scm
+      }
+    }
+
+    stage("Build") {
+      steps {
+        dir("miner") {
+          sh """docker build -t ${docker_image}:${docker_tag} ."""
+        }
+      }
+    }
+
+    stage("Push") {
+      steps {
+        dir("miner") {
+          sh """docker tag ${docker_image}:${docker_tag} ${docker_repo}:${docker_tag}"""
+          sh """\$(aws ecr get-login --region=${aws_region} --no-include-email) && docker push ${docker_repo}:${docker_tag}"""
+        }
+      }
+    }
+  }
+}
+
+/* vim: set filetype=groovy ts=2 sw=2 et : */

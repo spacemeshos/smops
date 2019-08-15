@@ -216,10 +216,10 @@ SPACEMESH_FULL_DATADIR=os.path.join(SPACEMESH_WORKDIR, SPACEMESH_DATADIR)
 config_toml = f"""\
 [main]
 data-folder = "{SPACEMESH_FULL_DATADIR}"
+post-datadir = "{SPACEMESH_FULL_DATADIR}"
 
-[p2p]
-new-node= false
-network-id = 1 # 0 - MainNet, 1 - TestNet
+[post]
+post-datadir = "{SPACEMESH_FULL_DATADIR}"
 """
 
 log.debug("config.toml:\n" + config_toml)

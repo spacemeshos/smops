@@ -39,10 +39,10 @@ if SPACEMESH_ID is not None:
     log.info("Creating init file for '{}'".format(SPACEMESH_ID))
 
 # SPACEMESH_FILESIZE - integer value, default 1Mb
-SPACEMESH_FILESIZE = str(int(os.environ.get("SPACEMESH_FILESIZE", 1048576)))
+SPACEMESH_FILESIZE = str(int(os.environ.get("SPACEMESH_FILESIZE", 0)))
 
 # SPACEMESH_SPACE - integer value, default 1Mb
-SPACEMESH_SPACE = str(int(os.environ.get("SPACEMESH_SPACE", 1048576)))
+SPACEMESH_SPACE = str(int(os.environ.get("SPACEMESH_SPACE", 0)))
 
 # SPACEMESH_DATADIR
 SPACEMESH_DATADIR = os.environ.get("SPACEMESH_DATADIR", "./data")

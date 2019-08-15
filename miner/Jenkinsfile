@@ -1,5 +1,6 @@
 aws_region = "us-east-1"
 kubectl = "kubectl --context=miner-${aws_region}"
+kubectl_poet = "kubectl --context=initfactory"
 
 default_miner_image = "spacemeshos/go-spacemesh:787b038"
 init_miner_image    = "534354616613.dkr.ecr.us-east-1.amazonaws.com/spacemesh-testnet-miner-init:latest"
@@ -441,6 +442,21 @@ pipeline {
           >>> Bootstrap nodes: ${bootnodes}
           >>> PoET --nodeaddr: ${bootstrap_addr}:${bootstrap_grpc_port}
           """.stripIndent()
+      }
+    }
+
+    stage("Update PoET config") {
+      steps {
+        echo "Setting PoET --nodeaddr"
+        sh """${kubectl_poet} patch configmap initfactory -p '{"data":{"poet_nodeaddr":"${bootstrap_addr}:${bootstrap_grpc_port}"}}'"""
+
+        echo "PoET pods before"
+        sh """${kubectl_poet} get pod -l app=poet"""
+        echo "Restarting PoET"
+        sh """${kubectl_poet} delete pod -l app=poet"""
+        sleep 5
+        echo "PoET pods after"
+        sh """${kubectl_poet} get pod -l app=poet"""
       }
     }
 

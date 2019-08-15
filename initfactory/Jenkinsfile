@@ -52,10 +52,10 @@ pipeline {
           INIT_COUNT = INIT_COUNT as int
           SPACEMESH_VOL_SIZE = SPACEMESH_VOL_SIZE as int
           /* Reset to 0 if not specified */
-          SPACEMESH_SPACE    = SPACEMESH_SPACE ? 0 : SPACEMESH_SPACE as int
-          SPACEMESH_FILESIZE = SPACEMESH_FILESIZE ? 0 : SPACEMESH_FILESIZE as int
+          SPACEMESH_SPACE    = SPACEMESH_SPACE    ? SPACEMESH_SPACE as int    : 0
+          SPACEMESH_FILESIZE = SPACEMESH_FILESIZE ? SPACEMESH_FILESIZE as int : 0
 
-          assert SPACEMESH_VOL_SIZE > 5
+          assert SPACEMESH_VOL_SIZE > 0
           assert SPACEMESH_SPACE == 0 ?: SPACEMESH_SPACE % SPACEMESH_FILESIZE == 0
 
           // If miner ID is given - then run a single job

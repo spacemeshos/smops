@@ -214,10 +214,6 @@ log.info("Writing config.toml")
 # Generate config.toml contents
 SPACEMESH_FULL_DATADIR=os.path.join(SPACEMESH_WORKDIR, SPACEMESH_DATADIR)
 config_toml = f"""\
-[main]
-data-folder = "{SPACEMESH_FULL_DATADIR}"
-post-datadir = "{SPACEMESH_FULL_DATADIR}"
-
 [post]
 post-datadir = "{SPACEMESH_FULL_DATADIR}"
 """

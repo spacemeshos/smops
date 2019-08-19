@@ -2,7 +2,6 @@
 # -*- coding: UTF-8 -*-
 
 from datetime import datetime
-from glob import iglob
 import logging
 import os
 from random import randint
@@ -113,33 +112,37 @@ metadata["finished_at"] = datetime.now().strftime("%Y-%m-%dT%H:%M:%S.%f+0000")
 s3 = botocore.session.get_session().create_client("s3")
 transfer = S3Transfer(s3)
 
-for f in iglob(os.path.join(SPACEMESH_DATADIR, "**", "*"), recursive=True):
-    stat_f = os.stat(f)
-    if not stat.S_ISREG(stat_f.st_mode):
-        log.debug("Skipping '{}', not a regular file".format(f))
-        continue
-    # Extract only relative path
-    s3_key = os.path.relpath(f, SPACEMESH_DATADIR)
+s3_upload_success = True
+for dirname, subdirs, files in os.walk(SPACEMESH_DATADIR):
+    # Get the path relative to data dir
+    subdir = os.path.relpath(dirname, SPACEMESH_DATADIR)
 
-    if SPACEMESH_ID is None and s3_key.endswith("/key.bin"):
-        SPACEMESH_ID = os.path.dirname(s3_key)
-        log.info("Found client miner id '{}' from path '{}'".format(SPACEMESH_ID, f))
+    # Iterate over files
+    for f in files:
+        fullpath = os.path.join(dirname, f)
+        if SPACEMESH_ID is None and f == "key.bin":
+            SPACEMESH_ID = subdir
+            log.info("Found client miner id '{}' from path '{}'".format(SPACEMESH_ID, fullpath))
 
-    # Append a prefix if required
-    if SPACEMESH_S3_PREFIX != "":
-        s3_key = SPACEMESH_S3_PREFIX + "/" + s3_key
+        s3_key = os.path.join(SPACEMESH_S3_PREFIX, subdir, f)
 
-    log.info("Uploading '{}' as 's3://{}/{}'".format(f, SPACEMESH_S3_BUCKET, s3_key))
-    try:
-        transfer.upload_file(f, SPACEMESH_S3_BUCKET, s3_key)
-    except Exception as e:
-        log.critical("Caught exception: {}".format(e))
+        log.info("Uploading '{}' as 's3://{}/{}'".format(fullpath, SPACEMESH_S3_BUCKET, s3_key))
+        try:
+            transfer.upload_file(fullpath, SPACEMESH_S3_BUCKET, s3_key)
+        except Exception as e:
+            log.critical("Caught exception: {}".format(e))
+            s3_upload_success = False
 
+
+# If the upload was not a complete success - do not upload it
+if not s3_upload_success:
+    log.fatal("Upload was incomplete, cannot record to DynamoDB!")
+    raise SystemExit(3)
 
 ### Record metadata into DynamoDB
 # Check if SPACEMESH_ID is set
 if SPACEMESH_ID is None:
-    log.fatal("No miner ID detected, cannot record!")
+    log.fatal("No miner ID detected, cannot record to DynamoDB!")
     raise SystemExit(2)
 
 metadata["id"] = SPACEMESH_ID

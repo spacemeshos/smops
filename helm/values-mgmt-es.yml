@@ -1,0 +1,21 @@
+---
+clusterName: "logs"
+
+replicas: 1
+minimumMasterNodes: 1
+
+volumeClaimTemplate:
+  accessModes: [ "ReadWriteOnce" ]
+  storageClassName: gp2-delayed
+  resources:
+    requests:
+      storage: 30Gi
+
+tolerations:
+- key: dedicated
+  operator: Equal
+  value: mgmt-es
+  effect: NoExecute
+
+nodeSelector:
+  pool: mgmt-es

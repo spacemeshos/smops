@@ -1,0 +1,23 @@
+backend:
+  type: es
+  es:
+    time_key: '@ts'
+    host: '${LOGS_MASTER_PORT_9200_TCP_ADDR}'
+
+tolerations:
+- key: node-role.kubernetes.io/master
+  operator: Equal
+  value: "true"
+  effect: NoSchedule
+- key: dedicated
+  operator: Equal
+  value: PoET
+  effect: NoExecute
+- key: dedicated
+  operator: Equal
+  value: mgmt-es
+  effect: NoExecute
+- key: dedicated
+  operator: Equal
+  value: InitFactory
+  effect: NoExecute

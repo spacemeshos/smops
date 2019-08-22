@@ -19,6 +19,7 @@ bootstrap_grpc_port = ""
 bootstrap_id = ""
 bootnodes = ""
 extra_params = ""
+bootstrap_extra_params = ""
 
 /* Library function: call script and return stdout */
 shell = {cmd ->
@@ -184,7 +185,7 @@ bootstrap_manifest = {pool_id, miner_image ->
                     "--coinbase",    \$(SPACEMESH_COINBASE),
                     "--poet-server", \$(SPACEMESH_POET_GRPC),
                     "--genesis-time", \"${SPACEMESH_GENESIS_TIME}\",
-                    ${extra_params}
+                    ${bootstrap_extra_params}
                   ]
             resources:
               limits:
@@ -352,7 +353,9 @@ pipeline {
     string name: 'GENESIS_TIME',  defaultValue: '', description: 'Genesis time', trim: true
     string name: 'GENESIS_DELAY', defaultValue: '5', description: 'Genesis delay from now, minutes', trim: true
     string name: 'SPACEMESH_VOL_SIZE', defaultValue: '10', description: 'Miner job volume space'
-    string name: 'EXTRA_PARAMS', defaultValue: '', description: 'Extra parameters to miner'
+    string name: 'EXTRA_PARAMS',           defaultValue: '', description: 'Extra parameters to miner'
+    string name: 'BOOTSTRAP_EXTRA_PARAMS', defaultValue: '',\
+           description: 'Extra parameters to bootstrap node (leave blank if the same as miner)'
   }
 
   stages {
@@ -374,6 +377,10 @@ pipeline {
 
           if(params.EXTRA_PARAMS.trim()) {
             extra_params = '"' + params.EXTRA_PARAMS.trim().tokenize().join('", "') + '"'
+            bootstrap_extra_params = extra_params
+          }
+          if(params.BOOTSTRAP_EXTRA_PARAMS.trim()) {
+            bootstrap_extra_params = '"' + params.BOOTSTRAP_EXTRA_PARAMS.trim().tokenize().join('", "') + '"'
           }
         }
         echo "Number of miners: ${miner_count}"
@@ -381,6 +388,7 @@ pipeline {
         echo "Bootstrap port: ${bootstrap_tcp_port}"
         echo "Miner ports: ${worker_ports}"
         echo "Extra miner params: ${extra_params}"
+        echo "Extra bootstrap params: ${bootstrap_extra_params}"
       }
     }
 

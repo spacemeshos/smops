@@ -1,0 +1,45 @@
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: poet
+  labels:
+    app: poet
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: poet
+  template:
+    metadata:
+      labels:
+        app: poet
+    spec:
+      tolerations:
+        - effect: NoExecute
+          key: dedicated
+          value: PoET
+          operator: Equal
+
+      nodeSelector:
+        pool: PoET
+
+      containers:
+        - name: default
+          image: spacemeshos/poet:develop
+          env:
+            - name: SPACEMESH_NODEADDR
+              valueFrom:
+                configMapKeyRef:
+                  name: initfactory
+                  key:  poet_nodeaddr
+          args: [ 
+            "--rpclisten", "0.0.0.0:50002",
+            "--restlisten", "0.0.0.0:8080",
+            "--nodeaddr", "$(SPACEMESH_NODEADDR)",
+          ]
+          ports:
+            - containerPort: 50002
+            - containerPort: 8080
+
+# vim:ts=2 sw=2 et:

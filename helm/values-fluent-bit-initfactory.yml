@@ -4,6 +4,11 @@ backend:
     time_key: '@ts'
     host: '${LOGS_MASTER_PORT_9200_TCP_ADDR}'
 
+parsers:
+  enabled: yes
+  json:
+    - name: default-json
+
 tolerations:
 - key: node-role.kubernetes.io/master
   operator: Equal

@@ -1,3 +1,4 @@
 helm --kube-context miner-us-east-1 upgrade fluent-bit --namespace logging -f values-fluent-bit-miner.yml stable/fluent-bit
 helm --kube-context initfactory upgrade kibana --namespace logging -f values-mgmt-kibana.yml elastic/kibana
 helm --kube-context=miner-us-east-1 init --service-account tiller --node-selectors node-role.kubernetes.io/master=true --upgrade
+helm --kube-context initfactory upgrade fluent-bit --namespace logging -f values-fluent-bit-initfactory.yml stable/fluent-bit

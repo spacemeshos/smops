@@ -4,6 +4,11 @@ backend:
     time_key: '@ts'
     host: internal-spacemesh-testnet-mgmt-es-116988061.us-east-1.elb.amazonaws.com
 
+parsers:
+  enabled: yes
+  json:
+    - name: default-json
+
 tolerations:
 - key: node-role.kubernetes.io/master
   operator: Equal

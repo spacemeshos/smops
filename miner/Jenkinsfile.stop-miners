@@ -1,3 +1,10 @@
+/* Global params */
+aws_region = "us-east-1"
+kubectl = "kubectl --context=miner-${aws_region}"
+
+/* Pipeline-global variables */
+label_selector = 'app=miner'
+
 /*
   PIPELINE
  */
@@ -9,13 +16,19 @@ pipeline {
   }
 
   parameters {
-    string name: 'POOL_ID',     defaultValue: '', description: 'Miner pool id', trim: true
+    string name: 'POOL_ID', defaultValue: '', description: 'Miner pool id (optional)', trim: true
   }
 
   stages {
     stage("Stopping miners") {
       steps {
-        sh """kubectl delete svc,deploy -l miner-pool=${params.POOL_ID}"""
+        script {
+          if(params.POOL_ID) {
+            echo "Stopping pool ${params.POOL_ID} only"
+            label_selector = "miner-pool=${params.POOL_ID}"
+          }
+        }
+        sh """${kubectl} delete svc,deploy,pvc -l ${label_selector}"""
       }
     }
   }

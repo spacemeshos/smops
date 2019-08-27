@@ -20,6 +20,8 @@ bootstrap_id = ""
 bootnodes = ""
 extra_params = ""
 bootstrap_extra_params = ""
+node_cpu_requests = "1800m"
+node_cpu_limit    = "1800m"
 
 /* Library function: call script and return stdout */
 shell = {cmd ->
@@ -189,9 +191,9 @@ bootstrap_manifest = {pool_id, miner_image ->
                   ]
             resources:
               limits:
-                cpu: 1000m
+                cpu: ${node_cpu_limit}
               requests:
-                cpu: 100m
+                cpu: ${node_cpu_requests}
             volumeMounts:
               - name: miner-storage
                 mountPath: /root
@@ -308,9 +310,9 @@ worker_manifest = {pool_id, miner_image, worker_id, port ->
                   ]
             resources:
               limits:
-                cpu: 1000m
+                cpu: ${node_cpu_limit}
               requests:
-                cpu: 100m
+                cpu: ${node_cpu_requests}
             volumeMounts:
               - name: miner-storage
                 mountPath: /root

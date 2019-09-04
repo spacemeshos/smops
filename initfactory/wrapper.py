@@ -37,9 +37,6 @@ if SPACEMESH_ID == "":
 if SPACEMESH_ID is not None:
     log.info("Creating init file for '{}'".format(SPACEMESH_ID))
 
-# SPACEMESH_FILESIZE - integer value, default 1Mb
-SPACEMESH_FILESIZE = str(int(os.environ.get("SPACEMESH_FILESIZE", 0)))
-
 # SPACEMESH_SPACE - integer value, default 1Mb
 SPACEMESH_SPACE = str(int(os.environ.get("SPACEMESH_SPACE", 0)))
 
@@ -60,7 +57,6 @@ SPACEMESH_DYNAMODB_REGION = os.environ.get("SPACEMESH_DYNAMODB_REGION", "us-east
 ### Initialize metadata
 metadata = {
     "locked": 0,
-    "file_size": SPACEMESH_FILESIZE if SPACEMESH_FILESIZE != "0" else "1048576",
     "space": SPACEMESH_SPACE if SPACEMESH_SPACE != "0" else "1048576",
     "started_at": datetime.now().strftime("%Y-%m-%dT%H:%M:%S.%f+0000"),
 }
@@ -88,11 +84,6 @@ if SPACEMESH_ID is not None:
 if SPACEMESH_SPACE != "0":
     log.info("NOTICE: Set file chunk size to '{}'".format(SPACEMESH_SPACE))
     init_cmd += ["-space", SPACEMESH_SPACE]
-
-if SPACEMESH_FILESIZE != "0":
-    log.info("NOTICE: Set filesize to '{}'".format(SPACEMESH_FILESIZE))
-    init_cmd += ["-filesize", SPACEMESH_FILESIZE]
-
 
 ### Execute the process and wait for completion
 log.info("Executing the process")
@@ -162,7 +153,6 @@ try:
                           "started_at": {"S": metadata["started_at"]},
                           "finished_at": {"S": metadata["finished_at"]},
                           "space": {"N": str(metadata["space"])},
-                          "file_size": {"N": str(metadata["file_size"])},
                       },
                       )
 except Exception as e:

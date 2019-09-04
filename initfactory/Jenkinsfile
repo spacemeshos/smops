@@ -5,8 +5,8 @@ def kubectl = "kubectl --context=initfactory"
 def initfactory_image = "534354616613.dkr.ecr.us-east-1.amazonaws.com/spacemesh-testnet-initfactory:latest"
 
 /* Job resources and other params */
-def backoff_limit = 5
-def cpu_requests  = "500m"
+def backoff_limit = 20
+def cpu_requests  = "900m"
 def cpu_limits    = "1000m"
 
 
@@ -36,7 +36,6 @@ pipeline {
   /* Job parameters */
   parameters {
     string(name: 'INIT_COUNT',         defaultValue: '10',      description: 'Init tasks(jobs) count')
-    string(name: 'SPACEMESH_FILESIZE', defaultValue: '1048576', description: 'Init file size')
     string(name: 'SPACEMESH_SPACE',    defaultValue: '1048576', description: 'Init file space size')
     string(name: 'SPACEMESH_VOL_SIZE', defaultValue: '10',      description: 'Init job volume space')
     string(name: 'SPACEMESH_ID',       defaultValue: '',        description: 'Miner ID')
@@ -52,11 +51,9 @@ pipeline {
           INIT_COUNT = INIT_COUNT as int
           SPACEMESH_VOL_SIZE = SPACEMESH_VOL_SIZE as int
           /* Reset to 0 if not specified */
-          SPACEMESH_SPACE    = SPACEMESH_SPACE    ? SPACEMESH_SPACE as int    : 0
-          SPACEMESH_FILESIZE = SPACEMESH_FILESIZE ? SPACEMESH_FILESIZE as int : 0
+          SPACEMESH_SPACE = SPACEMESH_SPACE ? SPACEMESH_SPACE as BigInteger : 0
 
           assert SPACEMESH_VOL_SIZE > 0
-          assert SPACEMESH_SPACE == 0 ?: SPACEMESH_SPACE % SPACEMESH_FILESIZE == 0
 
           // If miner ID is given - then run a single job
           if(SPACEMESH_ID != "") {
@@ -146,8 +143,6 @@ pipeline {
                               configMapKeyRef:
                                 name: initfactory
                                 key: initdata_dynamodb_region
-                          - name: SPACEMESH_FILESIZE
-                            value: "${SPACEMESH_FILESIZE}"
                           - name: SPACEMESH_SPACE
                             value: "${SPACEMESH_SPACE}"
                           - name: SPACEMESH_ID
@@ -160,7 +155,7 @@ pipeline {
                             cpu: "${cpu_requests}"
                           limits:
                             cpu: "${cpu_limits}"
-                    restartPolicy: Never
+                    restartPolicy: OnFailure
                 backoffLimit: ${backoff_limit}
               """.stripIndent()
             echo k8s_manifest

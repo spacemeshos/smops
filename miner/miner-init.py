@@ -11,7 +11,7 @@ import subprocess
 from time import sleep
 
 import botocore.session
-from s3transfer import S3Transfer
+from s3transfer import S3Transfer,TransferConfig
 
 ### Configure logging
 logging.basicConfig(
@@ -41,11 +41,8 @@ SPACEMESH_DATADIR = os.environ.get("SPACEMESH_DATADIR", "./data")
 # SPACEMESH_MAX_TRIES - max attempts to obtain a data file
 SPACEMESH_MAX_TRIES = int(os.environ.get("SPACEMESH_MAX_TRIES", 5))
 
-# SPACEMESH_FILESIZE - integer value, default 1Mb (FIXME: Unused)
-SPACEMESH_FILESIZE = str(int(os.environ.get("SPACEMESH_FILESIZE", 0)))
-
-# SPACEMESH_SPACE - integer value, default 1Mb (FIXME: Unused)
-SPACEMESH_SPACE = str(int(os.environ.get("SPACEMESH_SPACE", 0)))
+# SPACEMESH_SPACE - integer value, default 1Mb
+SPACEMESH_SPACE = str(int(os.environ.get("SPACEMESH_SPACE", 1024*1024)))
 
 # SPACEMESH_CLIENT
 SPACEMESH_CLIENT = os.environ.get("SPACEMESH_CLIENT", "/bin/go-spacemesh")
@@ -70,6 +67,10 @@ dynamodb = botocore.session.get_session().create_client("dynamodb", region_name=
 data_id = None
 
 # Check if there is already a data set allocated for us from previous run (pre-crash)
+if not SPACEMESH_WORKER_ID:
+    log.fatal("Cannot proceed without a worker ID!")
+    raise SystemExit(4)
+
 log.info("Checking metadata table to see if there is a dataset locked by '{}'".format(SPACEMESH_WORKER_ID))
 
 try:
@@ -99,11 +100,17 @@ else:
         rnd = randint(1, 2**32-1)
         try:
             log.debug("Fetch the first item above the threshold {}".format(rnd))
-            r = dynamodb.query(TableName=SPACEMESH_DYNAMODB_TABLE, IndexName="locked_random",
+            r = dynamodb.query(TableName=SPACEMESH_DYNAMODB_TABLE,
+                               IndexName="locked_random",
                                KeyConditionExpression="locked = :false AND random_sort_key > :rnd",
+                               FilterExpression="#space = :space",
+                               ExpressionAttributeNames={
+                                   "#space": "space",
+                               },
                                ExpressionAttributeValues={
                                    ":false": {"N": "0"},
                                    ":rnd":   {"N": str(rnd)},
+                                   ":space": {"N": str(SPACEMESH_SPACE)},
                                },
                                ProjectionExpression="id",
                                Limit=1,
@@ -117,9 +124,14 @@ else:
                 log.debug("Fetch the first item BELOW the threshold {} - nothing ABOVE it found".format(rnd))
                 r = dynamodb.query(TableName=SPACEMESH_DYNAMODB_TABLE, IndexName="locked_random",
                                    KeyConditionExpression="locked = :false AND random_sort_key <= :rnd",
+                                   FilterExpression="#space = :space",
+                                   ExpressionAttributeNames={
+                                       "#space": "space",
+                                   },
                                    ExpressionAttributeValues={
-                                       ":false": {"N": "0"},
-                                       ":rnd":   {"N": str(rnd)},
+                                   ":false": {"N": "0"},
+                                   ":rnd":   {"N": str(rnd)},
+                                   ":space": {"N": str(SPACEMESH_SPACE)},
                                    },
                                    ProjectionExpression="id",
                                    Limit=1,
@@ -174,7 +186,7 @@ log.info("Will proceed with data file '{}'".format(data_id))
 
 ### Transfer the files from S3
 s3 = botocore.session.get_session().create_client("s3")
-transfer = S3Transfer(s3)
+transfer = S3Transfer(s3, config=TransferConfig(multipart_chunksize=1024*1024*1024)) # 1 GiB chunk should be enough
 
 # List items under a specific prefix and download them
 data_prefix = data_id + "/"

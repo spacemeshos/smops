@@ -32,12 +32,12 @@ ENV SPACEMESH_DYNAMODB_REGION "us-east-1"
 ### Create an unprivileged user (FIXME: Move to main Dockerfile)
 RUN adduser -D spacemesh
 
-COPY --chown=root:root wrapper.py /bin/spacemesh-miner-wrapper.py
-RUN chmod 0755 /bin/spacemesh-miner-wrapper.py
+COPY --chown=root:root miner-init.py /bin/spacemesh-miner-init.py
+RUN chmod 0755 /bin/spacemesh-miner-init.py
 
 ### Default command
 #USER spacemesh
 #WORKDIR /home/spacemesh
 USER root
 WORKDIR /root
-CMD ["/bin/spacemesh-miner-wrapper.py"]
+CMD ["/bin/spacemesh-miner-init.py"]

@@ -2,6 +2,7 @@
 # -*- coding: UTF-8 -*-
 
 from datetime import datetime
+from glob import glob
 import logging
 import os
 from random import randint
@@ -11,7 +12,10 @@ import subprocess
 from pprint import pformat
 
 import botocore.session
-from s3transfer import S3Transfer
+from s3transfer import S3Transfer,TransferConfig
+
+### Some configuration constants
+MD_DATEFORMAT = "%Y-%m-%dT%H:%M:%S.%f+0000"
 
 ### Configure logging
 logging.basicConfig(
@@ -58,13 +62,9 @@ SPACEMESH_DYNAMODB_REGION = os.environ.get("SPACEMESH_DYNAMODB_REGION", "us-east
 metadata = {
     "locked": 0,
     "space": SPACEMESH_SPACE if SPACEMESH_SPACE != "0" else "1048576",
-    "started_at": datetime.now().strftime("%Y-%m-%dT%H:%M:%S.%f+0000"),
+    "started_at": datetime.now().strftime(MD_DATEFORMAT),
 }
 
-# Check if SPACEMESH_ID is set
-if SPACEMESH_ID is not None:
-    log.info("Using miner ID '{}' from the environment".format(SPACEMESH_ID))
-    metadata["id"] = SPACEMESH_ID
 
 ### Assemble the command line
 log.info("Using init at '{}'".format(SPACEMESH_INIT))
@@ -77,9 +77,31 @@ else:
     SPACEMESH_DATADIR=os.path.join(".", "data")
     log.info("NOTICE: Assuming data dir to be '{}'".format(SPACEMESH_DATADIR))
 
+
+# Check if SPACEMESH_ID is set
+if SPACEMESH_ID is not None:
+    log.info("Using miner ID '{}' from the environment".format(SPACEMESH_ID))
+else:
+    log.debug("Checking for data from previous run")
+    key_bin = glob(os.path.join(SPACEMESH_DATADIR, "*", "key.bin"))
+    if not key_bin:
+        log.debug("No recovery necessary")
+    else:
+        log.info("Found '{}' from previous run".format(key_bin))
+        if len(key_bin) > 1:
+            log.warning("Found more than one init data set, using the first one")
+        SPACEMESH_ID = os.path.basename(os.path.dirname(key_bin[0]))
+
+        # Adjust metadata to key.bin's mtime
+        metadata["started_at"] = datetime.fromtimestamp(os.stat(key_bin[0]).st_mtime).strftime(MD_DATEFORMAT)
+        log.info("Adjusted started_at to '{}'".format(metadata["started_at"]))
+
+
 if SPACEMESH_ID is not None:
     log.info("NOTICE: Set miner id to '{}'".format(SPACEMESH_ID))
+    metadata["id"] = SPACEMESH_ID
     init_cmd += ["-id", SPACEMESH_ID]
+
 
 if SPACEMESH_SPACE != "0":
     log.info("NOTICE: Set file chunk size to '{}'".format(SPACEMESH_SPACE))
@@ -96,12 +118,12 @@ if init_result.returncode != 0:
     raise SystemExit(init_result.returncode)
 
 log.info("Success, recording results")
-metadata["finished_at"] = datetime.now().strftime("%Y-%m-%dT%H:%M:%S.%f+0000")
+metadata["finished_at"] = datetime.now().strftime(MD_DATEFORMAT)
 
 
 ### Upload the files to S3
 s3 = botocore.session.get_session().create_client("s3")
-transfer = S3Transfer(s3)
+transfer = S3Transfer(s3, config=TransferConfig(multipart_chunksize=1024*1024*1024)) # 1 GiB chunk should be enough
 
 s3_upload_success = True
 for dirname, subdirs, files in os.walk(SPACEMESH_DATADIR):
@@ -131,6 +153,8 @@ if not s3_upload_success:
     raise SystemExit(3)
 
 ### Record metadata into DynamoDB
+dynamodb = botocore.session.get_session().create_client("dynamodb", region_name=SPACEMESH_DYNAMODB_REGION)
+
 # Check if SPACEMESH_ID is set
 if SPACEMESH_ID is None:
     log.fatal("No miner ID detected, cannot record to DynamoDB!")
@@ -141,8 +165,6 @@ metadata["id"] = SPACEMESH_ID
 log.info("Recording metadata into DynamoDB table '{}' in region '{}'".format(
     SPACEMESH_DYNAMODB_TABLE, SPACEMESH_DYNAMODB_REGION))
 log.debug("Metadata: " + pformat(metadata))
-
-dynamodb = botocore.session.get_session().create_client("dynamodb", region_name=SPACEMESH_DYNAMODB_REGION)
 
 try:
     dynamodb.put_item(TableName=SPACEMESH_DYNAMODB_TABLE,

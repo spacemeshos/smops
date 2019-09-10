@@ -6,6 +6,10 @@ backend:
 
 parsers:
   enabled: yes
+  regex:
+    - name: panic
+      regex: "panic*"
+      timeKey: time
   json:
     - name: default-json
 

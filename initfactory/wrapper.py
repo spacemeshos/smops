@@ -104,7 +104,7 @@ if SPACEMESH_ID is not None:
 
 
 if SPACEMESH_SPACE != "0":
-    log.info("NOTICE: Set file chunk size to '{}'".format(SPACEMESH_SPACE))
+    log.info("NOTICE: Set file size to '{}'".format(SPACEMESH_SPACE))
     init_cmd += ["-space", SPACEMESH_SPACE]
 
 ### Execute the process and wait for completion

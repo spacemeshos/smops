@@ -1,0 +1,13 @@
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: initfactory
+data:
+  initdata_dynamodb_region: eu-north-1
+  initdata_dynamodb_table: testnet-initdata.eu-north-1.spacemesh.io
+  initdata_s3_bucket: testnet-initdata.eu-north-1.spacemesh.io
+  initdata_s3_prefix: ""
+  poet_url: spacemesh-testnet-poet-grpc-lb-a390c50a80ea4435.elb.eu-north-1.amazonaws.com:50002
+  poet_nodeaddr: ""
+  spacemesh_coinbase: "0x1234"

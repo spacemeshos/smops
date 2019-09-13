@@ -18,11 +18,11 @@ spec:
       tolerations:
         - effect: NoExecute
           key: dedicated
-          value: PoET
+          value: poet
           operator: Equal
 
       nodeSelector:
-        pool: PoET
+        pool: poet
 
       containers:
         - name: default

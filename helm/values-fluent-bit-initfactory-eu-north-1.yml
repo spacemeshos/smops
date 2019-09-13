@@ -1,0 +1,35 @@
+backend:
+  type: es
+  es:
+    time_key: '@ts'
+    host: internal-spacemesh-testnet-mgmt-es-116988061.us-east-1.elb.amazonaws.com
+
+parsers:
+  enabled: yes
+  regex:
+    - name: panic
+      regex: "panic*"
+      timeKey: time
+  json:
+    - name: default-json
+
+rawConfig: |
+    @INCLUDE fluent-bit-service.conf
+    @INCLUDE fluent-bit-input.conf
+    @INCLUDE fluent-bit-filter.conf
+    @INCLUDE fluent-bit-output.conf
+
+    [FILTER]
+        Name record_modifier
+        Match *
+        Record spacemesh_cluster initfactory-eu-north-1
+
+tolerations:
+- key: dedicated
+  operator: Equal
+  value: poet
+  effect: NoExecute
+- key: dedicated
+  operator: Equal
+  value: initfactory
+  effect: NoExecute

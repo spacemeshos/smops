@@ -17,5 +17,10 @@ tolerations:
   value: mgmt-es
   effect: NoExecute
 
+service:
+  type: LoadBalancer
+  annotations:
+    service.beta.kubernetes.io/aws-load-balancer-internal: "true"
+
 nodeSelector:
   pool: mgmt-es

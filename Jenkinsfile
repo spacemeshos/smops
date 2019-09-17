@@ -4,6 +4,15 @@ repo_url = "git@bitbucket.org:automatitdevops/spacemesh-misc.git"
 creds_id = "main_key"
 dsl_name = "spacemesh.dsl"
 
+top_folder = "testnet"
+aws_regions = [
+  "ap-northeast-2",
+  "eu-north-1",
+//  "us-east-1",
+  "us-east-2",
+  "us-west-2",
+  ]
+
 /*
   PIPELINE
  */
@@ -22,7 +31,6 @@ pipeline {
     }
 
     stage("Apply DSL") {
-//      when { expression { false } } //FIXME: Enable
       steps {
         jobDsl(
                targets: dsl_name,
@@ -40,6 +48,92 @@ pipeline {
       }
     }
   }
+}
+
+def topFolderDSL(name, desc="", display_name="") {
+  """\
+  folder("${name}") {
+    description "${desc}"
+    displayName "${display_name}"
+    properties {
+      folderLibraries {
+        libraries {
+          libraryConfiguration {
+            name("spacemesh")
+            retriever {
+              modernSCM {
+                scm {
+                  git {
+                    remote "${repo_url}"
+                    credentialsId "${creds_id}"
+                  }
+                }
+              }
+            }
+            defaultVersion("master")
+          }
+        }
+      }
+    }
+  }
+  """.stripIndent()
+}
+
+def folderDSL(name, desc="") {
+  """\
+  folder("${name}") {
+    description "${desc}"
+  }
+  """.stripIndent()
+}
+
+def simpleJobDSL(name, func, desc="") {
+  """\
+  pipelineJob("${name}") {
+    description "${desc}"
+    definition {
+      cps {
+        sandbox()
+        script '''\\
+          @Library("spacemesh") _
+          ${func}
+        '''.stripIndent()
+      }
+    }
+  }
+  """.stripIndent()
+}
+
+def testnetDSL() {
+  def result = ""
+
+  result += topFolderDSL(top_folder, "Jobs related to TestNet deployment", "TestNet")
+
+  aws_regions.each {region->
+    result += folderDSL("${top_folder}/${region}")
+    result += simpleJobDSL(
+      "${top_folder}/${region}/run-initfactory-workers",
+      "runInitFactoryWorkers(\"${region}\")",
+      "Run InitFactory workers in the region",
+    )
+    result += simpleJobDSL(
+      "${top_folder}/${region}/clean-initfactory-workers",
+      "cleanInitFactoryWorkers(\"${region}\")",
+      "Clean completed InitFactory jobs in the region",
+    )
+    result += simpleJobDSL(
+      "${top_folder}/${region}/run-miners",
+      "runMiners(\"${region}\")",
+      "Run Miners in the region",
+    )
+    result += simpleJobDSL(
+      "${top_folder}/${region}/stop-miners",
+      "stopMiners(\"${region}\")",
+      "Stop Miners in the region",
+    )
+  }
+
+  return result
 }
 
 def scmDSL(script_path="Jenkinsfile") {
@@ -62,65 +156,20 @@ def scmDSL(script_path="Jenkinsfile") {
 """.trim()
 }
 
-def initfactoryDSL(folder="init-factory") {
+def spacemeshDSL() {
   def result = ""
 
-  /* Define the folder for InitFactory jobs */
+  /* Add Global folder */
   result += """\
-    folder("${folder}") {
-      description("Jobs related to InitFactory")
-    }
-  """.stripIndent()
-  
-  /* build-image pipeline */
-  result += """\
-    pipelineJob("${folder}/build-image") {
-      description("Bulds an image for InitFactory's initContainer")
-      definition {
-        ${scmDSL("initfactory/Jenkinsfile.build")}
-      }
-    }
+  folder("global") {
+    displayName "Global"
+    description "Jobs for all the regions"
+  }
   """.stripIndent()
 
-  /* run-workers pipeline */
+  /* build-miner-init-image pipeline */
   result += """\
-    pipelineJob("${folder}/run-workers") {
-      description("Runs a specified number of InitFactory workers")
-      definition {
-        ${scmDSL("initfactory/Jenkinsfile")}
-      }
-    }
-  """.stripIndent()
-
-  /* cleanup-workers pipeline */
-  result += """\
-    pipelineJob("${folder}/cleanup-workers") {
-      description("Cleans up completed InitFactory workers")
-      triggers {
-        cron "H/15 * * * *"
-      }
-      definition {
-        ${scmDSL("initfactory/Jenkinsfile.cleanup")}
-      }
-    }
-  """.stripIndent()
-
-  return result
-}
-
-def minerDSL(folder="miner-us-east-1") {
-  def result = ""
-
-  /* Define the folder for InitFactory jobs */
-  result += """\
-    folder("${folder}") {
-      description("Jobs related to Miner in us-east-1 AWS region")
-    }
-  """.stripIndent()
-
-  /* build-init-image pipeline */
-  result += """\
-    pipelineJob("${folder}/build-init-image") {
+    pipelineJob("global/build-miner-init-image") {
       description("Builds container image for Miner's initContainer")
       definition {
         ${scmDSL("miner/Jenkinsfile.build")}
@@ -128,44 +177,18 @@ def minerDSL(folder="miner-us-east-1") {
     }
   """.stripIndent()
 
-  /* run-miners pipeline */
+  /* build-initfactory-image pipeline */
   result += """\
-    pipelineJob("${folder}/run-miners") {
-      description("Runs a specified number of miners")
+    pipelineJob("global/build-initfactory-image") {
+      description("Bulds an image for InitFactory")
       definition {
-        ${scmDSL("miner/Jenkinsfile")}
+        ${scmDSL("initfactory/Jenkinsfile.build")}
       }
     }
   """.stripIndent()
 
-  /* stop-miners pipeline */
-  result += """\
-    pipelineJob("${folder}/stop-miners") {
-      description("Stops running miners")
-      definition {
-        ${scmDSL("miner/Jenkinsfile.stop-miners")}
-      }
-    }
-  """.stripIndent()
-
-  /* unlock-data pipeline */
-  result += """\
-    pipelineJob("${folder}/unlock-data") {
-      description("Removes locks on InitFactory-generated data")
-      definition {
-        ${scmDSL("miner/Jenkinsfile.unlock")}
-      }
-    }
-  """.stripIndent()
-
-  return result
-}
-
-def spacemeshDSL() {
-  def result = ""
-
-  result += initfactoryDSL("init-factory")
-  result += minerDSL("miner-us-east-1")
+  /* Add TestNet folder and projects */
+  result += testnetDSL()
 
   return result
 }

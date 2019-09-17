@@ -2,9 +2,6 @@ def call(aws_region="us-east-2") {
   /* kubectl command */
   def kubectl = "kubectl --context=initfactory-${aws_region}"
 
-  /* Library function: call script and return stdout */
-  def shell = {cmd -> sh(returnStdout: true, script: cmd).trim() }
-
   /* Pipeline global vars */
   def job_list = []
 

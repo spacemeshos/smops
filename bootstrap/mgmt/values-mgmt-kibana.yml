@@ -1,0 +1,15 @@
+---
+elasticsearchHosts: "http://$(LOGS_MASTER_SERVICE_HOST):9200"
+
+tolerations:
+- key: dedicated
+  operator: Equal
+  value: logging
+  effect: NoExecute
+
+nodeSelector:
+  pool: logging
+
+service:
+  type: NodePort
+  nodePort: 31500

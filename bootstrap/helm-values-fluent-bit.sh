@@ -1,8 +1,16 @@
+#!/bin/bash
+
+ELASTICSEARCH_HOST="internal-spacemesh-testnet-mgmt-es-116988061.us-east-1.elb.amazonaws.com"
+
+CONTEXT=$1
+shift
+
+cat <<EOF
 backend:
   type: es
   es:
     time_key: '@ts'
-    host: internal-spacemesh-testnet-mgmt-es-116988061.us-east-1.elb.amazonaws.com
+    host: $ELASTICSEARCH_HOST
 
 parsers:
   enabled: yes
@@ -22,14 +30,18 @@ rawConfig: |
     [FILTER]
         Name record_modifier
         Match *
-        Record spacemesh_cluster initfactory-us-west-2
+        Record spacemesh_cluster $CONTEXT
 
 tolerations:
+EOF
+
+for pool in "$@"; do
+    cat <<EOF
 - key: dedicated
   operator: Equal
-  value: poet
+  value: $pool
   effect: NoExecute
-- key: dedicated
-  operator: Equal
-  value: initfactory
-  effect: NoExecute
+EOF
+done
+
+# vim:set ts=4 sw=4 ai et:

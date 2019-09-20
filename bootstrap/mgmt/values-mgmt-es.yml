@@ -14,13 +14,17 @@ volumeClaimTemplate:
 tolerations:
 - key: dedicated
   operator: Equal
-  value: mgmt-es
+  value: logging
   effect: NoExecute
 
 service:
-  type: LoadBalancer
-  annotations:
-    service.beta.kubernetes.io/aws-load-balancer-internal: "true"
+  type: NodePort
+  nodePort: 31200
+
+#service:
+#  type: LoadBalancer
+#  annotations:
+#    service.beta.kubernetes.io/aws-load-balancer-internal: "true"
 
 nodeSelector:
-  pool: mgmt-es
+  pool: logging

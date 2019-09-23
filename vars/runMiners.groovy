@@ -235,7 +235,7 @@ def call(aws_region="us-east-2") {
     }
 
     parameters {
-      string name: 'MINER_COUNT', defaultValue: '', description: 'Number of the miners to start', trim: true
+      string name: 'MINER_COUNT', defaultValue: '0', description: 'Number of the miners to start', trim: true
       string name: 'MINER_IMAGE', defaultValue: default_miner_image, description: 'Miner pool id', trim: true
       string name: 'POOL_ID',     defaultValue: '', description: 'Miner pool id', trim: true
       string name: 'GENESIS_TIME',  defaultValue: '', description: 'Genesis time', trim: true

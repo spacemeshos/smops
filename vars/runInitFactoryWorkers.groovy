@@ -23,7 +23,7 @@ def call(aws_region="us-east-2") {
 
     /* Job parameters */
     parameters {
-      string name: 'INIT_COUNT',         defaultValue: '10',      description: 'Init tasks(jobs) count'
+      string name: 'INIT_COUNT',         defaultValue: '0',       description: 'Init tasks(jobs) count'
       string name: 'SPACEMESH_SPACE',    defaultValue: '1048576', description: 'Init file space size. Appeng G for GiB, M for MiB'
       string name: 'SPACEMESH_VOL_SIZE', defaultValue: '10',      description: 'Init job volume space'
       string name: 'SPACEMESH_ID',       defaultValue: '',        description: 'Miner ID'
@@ -53,6 +53,7 @@ def call(aws_region="us-east-2") {
             }
 
             assert SPACEMESH_VOL_SIZE > 0
+            assert INIT_COUNT > 0
 
             SPACEMESH_ID = params.SPACEMESH_ID ?: ""
             // If miner ID is given - then run a single job

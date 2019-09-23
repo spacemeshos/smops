@@ -104,6 +104,41 @@ def simpleJobDSL(name, func, desc="") {
   """.stripIndent()
 }
 
+def testnetCleanAllDSL(top_folder) {
+  def pipeline = """\
+  pipeline {
+    agent none
+    stages {
+  """
+
+  aws_regions.each {region->
+    pipeline += """\
+      stage(\"${region}\") {
+        steps {
+          build job: \"./${region}/clean-initfactory-workers\"
+        }
+      }
+    """
+  }
+
+  pipeline += """\
+    }
+  }
+  """
+
+  """\
+  pipelineJob("${top_folder}/__cleanup-initfactory-workers") {
+    description "Clean all the finished InitFactory workers in all regions"
+    definition {
+      cps {
+        sandbox()
+        script '''${pipeline.stripIndent()}'''
+      }
+    }
+  }
+  """.stripIndent()
+}
+
 def testnetDSL() {
   def result = ""
 
@@ -132,6 +167,8 @@ def testnetDSL() {
       "Stop Miners in the region",
     )
   }
+
+  result += testnetCleanAllDSL(top_folder)
 
   return result
 }

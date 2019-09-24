@@ -1,8 +1,8 @@
 aws_region = "us-east-1"
 kubectl = "kubectl --context=miner-${aws_region}"
-kubectl_poet = "kubectl --context=initfactory"
+kubectl_poet = "kubectl --context=mgmt-us-east-1"
 
-default_miner_image = "spacemeshos/go-spacemesh:787b038"
+default_miner_image = "spacemeshos/go-spacemesh:develop"
 init_miner_image    = "534354616613.dkr.ecr.us-east-1.amazonaws.com/spacemesh-testnet-miner-init:latest"
 
 /* FIXME: Move to ConfigMap */

@@ -104,27 +104,25 @@ def simpleJobDSL(name, func, desc="") {
   """.stripIndent()
 }
 
+def buildJobPerRegions(job_name) {
+  aws_regions.collect({region->"""
+      stage(\"${region}\") {
+        steps {
+          build job: \"./${region}/${job_name}\"
+        }
+      }
+    """}).join("\n")
+}
+
 def testnetCleanAllDSL(top_folder) {
   def pipeline = """\
   pipeline {
     agent none
     stages {
-  """
-
-  aws_regions.each {region->
-    pipeline += """\
-      stage(\"${region}\") {
-        steps {
-          build job: \"./${region}/clean-initfactory-workers\"
-        }
-      }
-    """
-  }
-
-  pipeline += """\
+      ${buildJobPerRegions("clean-initfactory-workers")}
     }
   }
-  """
+  """.stripIndent()
 
   """\
   pipelineJob("${top_folder}/__cleanup-initfactory-workers") {
@@ -132,7 +130,30 @@ def testnetCleanAllDSL(top_folder) {
     definition {
       cps {
         sandbox()
-        script '''${pipeline.stripIndent()}'''
+        script '''${pipeline}'''
+      }
+    }
+  }
+  """.stripIndent()
+}
+
+def testnetUnlockAllDSL(top_folder) {
+  def pipeline = """\
+  pipeline {
+    agent none
+    stages {
+      ${buildJobPerRegions("unlock-initdata")}
+    }
+  }
+  """.stripIndent()
+
+  """\
+  pipelineJob("${top_folder}/__unlock-initdata") {
+    description "Unlock all the init data sets in all regions"
+    definition {
+      cps {
+        sandbox()
+        script '''${pipeline}'''
       }
     }
   }
@@ -145,7 +166,9 @@ def testnetDSL() {
   result += topFolderDSL(top_folder, "Jobs related to TestNet deployment", "TestNet")
 
   aws_regions.each {region->
-    result += folderDSL("${top_folder}/${region}")
+    result += folderDSL("${top_folder}/${region}", "Jobs related to ${region} region")
+
+    /* InitFactory */
     result += simpleJobDSL(
       "${top_folder}/${region}/run-initfactory-workers",
       "runInitFactoryWorkers(\"${region}\")",
@@ -156,6 +179,8 @@ def testnetDSL() {
       "cleanInitFactoryWorkers(\"${region}\")",
       "Clean completed InitFactory jobs in the region",
     )
+
+    /* Miner */
     result += simpleJobDSL(
       "${top_folder}/${region}/run-miners",
       "runMiners(\"${region}\")",
@@ -166,9 +191,18 @@ def testnetDSL() {
       "stopMiners(\"${region}\")",
       "Stop Miners in the region",
     )
+
+    /* Tools */
+    result += simpleJobDSL(
+      "${top_folder}/${region}/unlock-initdata",
+      "unlockDataSet(\"${region}\")",
+      "Unlock InitFactory data in the region",
+    )
   }
 
+  /* TestNet-global tasks */
   result += testnetCleanAllDSL(top_folder)
+  result += testnetUnlockAllDSL(top_folder)
 
   return result
 }

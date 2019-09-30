@@ -5,10 +5,6 @@ kubectl_poet = "kubectl --context=mgmt-us-east-1"
 default_miner_image = "spacemeshos/go-spacemesh:develop"
 init_miner_image    = "534354616613.dkr.ecr.us-east-1.amazonaws.com/spacemesh-testnet-miner-init:latest"
 
-/* FIXME: Move to ConfigMap */
-coin_base = "0x1234"
-poet_url  = "spacemesh-testnet-poet-grpc-lb-f34cb9e80d3b5d58.elb.us-east-1.amazonaws.com:50002"
-
 /* Pipeline global vars */
 miner_count = 0
 worker_ports = []
@@ -129,22 +125,22 @@ bootstrap_manifest = {pool_id, miner_image ->
               - name: SPACEMESH_S3_BUCKET
                 valueFrom:
                   configMapKeyRef:
-                    name: spacemesh-testnet-miner
+                    name: initfactory
                     key: initdata_s3_bucket
               - name: SPACEMESH_S3_PREFIX
                 valueFrom:
                   configMapKeyRef:
-                    name: spacemesh-testnet-miner
+                    name: initfactory
                     key: initdata_s3_prefix
               - name: SPACEMESH_DYNAMODB_TABLE
                 valueFrom:
                   configMapKeyRef:
-                    name: spacemesh-testnet-miner
+                    name: initfactory
                     key: initdata_dynamodb_table
               - name: SPACEMESH_DYNAMODB_REGION
                 valueFrom:
                   configMapKeyRef:
-                    name: spacemesh-testnet-miner
+                    name: initfactory
                     key: initdata_dynamodb_region
               - name: SPACEMESH_WORKER_ID
                 valueFrom:
@@ -178,9 +174,13 @@ bootstrap_manifest = {pool_id, miner_image ->
               - name: SPACEMESH_GRPC_PORT
                 value: \"${bootstrap_grpc_port}\"
               - name: SPACEMESH_COINBASE
-                value: \"${coin_base}\"
+                configMapKeyRef:
+                  name: initfactory
+                  key: spacemesh_coinbase
               - name: SPACEMESH_POET_GRPC
-                value: \"${poet_url}\"
+                configMapKeyRef:
+                  name: initfactory
+                  key: poet_url
             args: [ "--config", "/root/config.toml",
                     "--grpc-server", "--grpc-port", \$(SPACEMESH_GRPC_PORT),
                     "--tcp-port",    \$(SPACEMESH_MINER_PORT),
@@ -250,22 +250,22 @@ worker_manifest = {pool_id, miner_image, worker_id, port ->
               - name: SPACEMESH_S3_BUCKET
                 valueFrom:
                   configMapKeyRef:
-                    name: spacemesh-testnet-miner
+                    name: initfactory
                     key: initdata_s3_bucket
               - name: SPACEMESH_S3_PREFIX
                 valueFrom:
                   configMapKeyRef:
-                    name: spacemesh-testnet-miner
+                    name: initfactory
                     key: initdata_s3_prefix
               - name: SPACEMESH_DYNAMODB_TABLE
                 valueFrom:
                   configMapKeyRef:
-                    name: spacemesh-testnet-miner
+                    name: initfactory
                     key: initdata_dynamodb_table
               - name: SPACEMESH_DYNAMODB_REGION
                 valueFrom:
                   configMapKeyRef:
-                    name: spacemesh-testnet-miner
+                    name: initfactory
                     key: initdata_dynamodb_region
               - name: SPACEMESH_WORKER_ID
                 valueFrom:
@@ -297,9 +297,13 @@ worker_manifest = {pool_id, miner_image, worker_id, port ->
               - name: SPACEMESH_MINER_PORT
                 value: \"${port}\"
               - name: SPACEMESH_COINBASE
-                value: \"${coin_base}\"
+                configMapKeyRef:
+                  name: initfactory
+                  key: spacemesh_coinbase
               - name: SPACEMESH_POET_GRPC
-                value: \"${poet_url}\"
+                configMapKeyRef:
+                  name: initfactory
+                  key: poet_url
             args: [ "--config", "/root/config.toml",
                     "--tcp-port", \$(SPACEMESH_MINER_PORT),
                     "--coinbase",    \$(SPACEMESH_COINBASE),

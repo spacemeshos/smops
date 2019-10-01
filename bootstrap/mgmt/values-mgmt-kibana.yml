@@ -5,7 +5,7 @@ tolerations:
 - key: dedicated
   operator: Equal
   value: logging
-  effect: NoExecute
+  effect: NoSchedule
 
 nodeSelector:
   pool: logging

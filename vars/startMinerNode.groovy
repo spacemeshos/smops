@@ -60,6 +60,7 @@ def call(Map config) {
                         app: miner
                         miner-pool: \"${config.pool_id}\"
                         miner-node: ${config.node_id}
+                        worker-id:  \"${config.pool_id}-${config.node_id}\"
                     spec:
                       nodeSelector:
                         pool: miner
@@ -67,7 +68,7 @@ def call(Map config) {
                         - key: dedicated
                           operator: Equal
                           value: miner
-                          effect: NoExecute
+                          effect: NoSchedule
                       volumes:
                         - name: miner-storage
                           persistentVolumeClaim:
@@ -100,7 +101,7 @@ def call(Map config) {
                             - name: SPACEMESH_WORKER_ID
                               valueFrom:
                                 fieldRef:
-                                  fieldPath: metadata.name
+                                  fieldPath: metadata.worker-id
                             - name: SPACEMESH_WORKDIR
                               value: "/root"
                             - name: SPACEMESH_DATADIR

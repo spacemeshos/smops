@@ -40,7 +40,7 @@ for pool in "$@"; do
 - key: dedicated
   operator: Equal
   value: $pool
-  effect: NoExecute
+  effect: NoSchedule
 EOF
 done
 

@@ -16,7 +16,7 @@ spec:
         app: poet
     spec:
       tolerations:
-        - effect: NoExecute
+        - effect: NoSchedule
           key: dedicated
           value: poet
           operator: Equal

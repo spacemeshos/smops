@@ -104,7 +104,7 @@ def call(aws_region="us-east-2") {
                         app: initfactory
                     spec:
                       tolerations:
-                        - effect: NoExecute
+                        - effect: NoSchedule
                           key: dedicated
                           operator: Equal
                           value: initfactory

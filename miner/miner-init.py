@@ -213,9 +213,9 @@ class LogProgress:
 
     def __call__(self, bytes_transferred=0):
         self.bytes += bytes_transferred
-        self.total += bytes_transferred
         self.ctr += 1
-        if self.bytes >= 16*1024**2:
+        if self.bytes >= 1024**3:
+            self.total += self.bytes
             log.info("Downloaded {} byte(s) of {} in {} packet(s), {} byte(s) so far".format(self.bytes,
                                                                                              self.dest,
                                                                                              self.ctr,

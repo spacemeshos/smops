@@ -1,7 +1,4 @@
 def call(aws_region="us-east-2") {
-  /* Pipeline-global variables */
-  def items = []
-  
   /*
     PIPELINE
    */
@@ -11,37 +8,16 @@ def call(aws_region="us-east-2") {
     }
 
     agent any
-
     stages {
-      stage("List items") {
+      stage("Get script") {
         steps {
-          script {
-            items = shell("""\
-              aws dynamodb --region=${aws_region} scan \\
-                           --table-name testnet-initdata.${aws_region}.spacemesh.io \\
-                           --projection-expression 'id' \\
-                           --query 'Items[].id.S' \\
-                           --output text
-                           """.stripIndent()
-                         ).split()
-          }
-          echo "Found ${items.size()} item(s) to unlock"
+          writeFile file: "unlock_initdata.py", text: libraryResource("scripts/unlock_initdata.py")
         }
       }
 
-      stage("Unlock") {
+      stage("Unlock data") {
         steps {
-          script {
-            items.each {
-              sh """\
-                aws dynamodb --region=${aws_region} update-item \\
-                             --table-name testnet-initdata.${aws_region}.spacemesh.io \\
-                             --key '{"id": {"S": "${it}"}}' \\
-                             --update-expression 'SET locked=:false REMOVE locked_by' \\
-                             --expression-attribute-values '{":false": {"N": "0"}}'
-                """.stripIndent()
-            }
-          }
+          sh """python3 unlock_initdata.py ${aws_region}"""
         }
       }
     }

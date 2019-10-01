@@ -49,7 +49,7 @@ def call(Map config) {
   ])
 
   echo "Waiting for the bootstrap pod to be scheduled"
-  sh """${kubectl} wait --timeout=1800s --for=condition=Available deploy/${node}"""
+  sh """${kubectl} wait --timeout=3600s --for=condition=Available deploy/${node}"""
 
   echo "Getting the node which runs the pod"
 

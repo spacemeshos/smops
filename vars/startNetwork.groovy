@@ -65,7 +65,7 @@ def call(String aws_region) {
       string name: 'GENESIS_TIME', defaultValue: '', trim: true, \
              description: 'Genesis time'
 
-      string name: 'GENESIS_DELAY', defaultValue: '15', trim: true, \
+      string name: 'GENESIS_DELAY', defaultValue: '60', trim: true, \
              description: 'Genesis delay from now, minutes'
 
       string name: 'SPACEMESH_SPACE',defaultValue: '256G', trim: true, \

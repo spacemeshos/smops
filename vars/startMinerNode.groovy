@@ -99,9 +99,7 @@ def call(Map config) {
                                   name: initfactory
                                   key: initdata_dynamodb_region
                             - name: SPACEMESH_WORKER_ID
-                              valueFrom:
-                                fieldRef:
-                                  fieldPath: metadata.worker-id
+                              value: \"${config.pool_id}-${config.node_id}\"
                             - name: SPACEMESH_WORKDIR
                               value: "/root"
                             - name: SPACEMESH_DATADIR

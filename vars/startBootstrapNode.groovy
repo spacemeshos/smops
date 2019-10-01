@@ -31,6 +31,7 @@ def call(Map config) {
                     type: NodePort
                     selector:
                       miner-node: \"${node}\"
+                      miner-pool: \"${config.pool_id}\"
                     ports:
                     - protocol: TCP
                       port: ${config.grpc_port}

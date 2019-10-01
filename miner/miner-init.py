@@ -19,14 +19,14 @@ logging.basicConfig(
     level=logging.INFO,
     datefmt="%Y-%m-%dT%H:%M:%S.000%z"
     )
-log = logging.getLogger("InitFactory")
-log.setLevel(logging.DEBUG)
-if "LOGLEVEL" in os.environ:
-    log.setLevel(getattr(logging, os.environ["LOGLEVEL"].upper(), logging.DEBUG))
+log = logging.getLogger("miner-init")
+log.setLevel(getattr(logging, os.environ.get("LOGLEVEL", "DEBUG").upper(), logging.DEBUG))
 log.debug("Level set to {}".format(log.level))
 
-# Suppress botocore debug log
-logging.getLogger("botocore").setLevel(logging.INFO)
+# BOTO_LOGLEVEL applies to both botocore and s3transfer
+BOTO_LOGLEVEL=getattr(logging, os.environ.get("BOTO_LOGLEVEL", "INFO").upper(), logging.INFO)
+logging.getLogger("botocore").setLevel(BOTO_LOGLEVEL)
+logging.getLogger("s3transfer").setLevel(BOTO_LOGLEVEL)
 
 ### Set parameters
 # SPACEMESH_WORKER_ID - worker ID to recover the same dataset
@@ -57,8 +57,8 @@ SPACEMESH_DYNAMODB_REGION = os.environ.get("SPACEMESH_DYNAMODB_REGION", "us-east
 
 
 ### Check if the data is already retrieved (pod restarted)
-if glob(os.path.join(SPACEMESH_DATADIR, "*")):
-    log.info("There is something in the data dir already, not retrieving new data")
+if os.path.exists("config.toml"):
+    log.info("Found config.toml file, looks like already initialized")
     raise SystemExit(0)
 
 
@@ -91,6 +91,7 @@ if r["Count"] > 0:
     data_id = r["Items"][0]["id"]["S"]
 else:
     log.info("No locked data set found, getting a new one")
+    log.info("Filtering results with space='{}'".format(SPACEMESH_SPACE))
 
     # Get a random unlocked InitData from DynamoDB
     for i in range(SPACEMESH_MAX_TRIES):
@@ -99,7 +100,7 @@ else:
         log.info("Querying the metadata table")
         rnd = randint(1, 2**32-1)
         try:
-            log.debug("Fetch the first item above the threshold {}".format(rnd))
+            log.debug("Trying to find an item above the threshold {}".format(rnd))
             r = dynamodb.query(TableName=SPACEMESH_DYNAMODB_TABLE,
                                IndexName="locked_random",
                                KeyConditionExpression="locked = :false AND random_sort_key > :rnd",
@@ -113,7 +114,7 @@ else:
                                    ":space": {"N": str(SPACEMESH_SPACE)},
                                },
                                ProjectionExpression="id",
-                               Limit=1,
+                               Limit=10,
                                )
         except Exception as e:
             log.fatal("Caught exception: {}".format(e))
@@ -134,16 +135,17 @@ else:
                                    ":space": {"N": str(SPACEMESH_SPACE)},
                                    },
                                    ProjectionExpression="id",
-                                   Limit=1,
+                                   Limit=10,
                                    )
             except Exception as e:
                 log.fatal("Caught exception: {}".format(e))
                 raise SystemExit(1)
 
         if r["Count"] == 0:
-            log.info("No unused init data files found, exiting normally")
-            raise SystemExit(0)
+            log.info("No unused init data files found with threshold='{}', retrying".format(rnd))
+            continue
 
+        log.debug("Got '{}' results, using the first one".format(r["Count"]))
         # Get the data id
         data_id = r["Items"][0]["id"]["S"]
         log.info("Will proceed with data file '{}'".format(data_id))
@@ -165,7 +167,7 @@ else:
         except Exception as e:
             if issubclass(type(e), botocore.exceptions.ClientError) and \
                e.response["Error"]["Code"] == "ConditionalCheckFailedException":
-                   log.info("Someone already grabbed '{}' data file, retrying if possible".format(data_id))
+                   log.info("Someone already grabbed '{}' data file, retrying".format(data_id))
                    sleep(randrange(2, 10))
                    continue
 
@@ -200,6 +202,28 @@ except Exception as e:
     log.fatal("Caught exception: {}".format(e))
     raise SystemExit(3)
 
+
+# Callback class: Log download progress
+class LogProgress:
+    def __init__(self, dest):
+        self.bytes = 0
+        self.ctr = 0
+        self.dest = dest
+        self.total = 0
+
+    def __call__(self, bytes_transferred=0):
+        self.bytes += bytes_transferred
+        self.total += bytes_transferred
+        self.ctr += 1
+        if self.bytes >= 16*1024**2:
+            log.info("Downloaded {} byte(s) of {} in {} packet(s), {} byte(s) so far".format(self.bytes,
+                                                                                             self.dest,
+                                                                                             self.ctr,
+                                                                                             self.total))
+            self.bytes = 0
+            self.ctr = 0
+
+
 # Download the objects
 for obj in data_objects["Contents"]:
     dest = obj["Key"]
@@ -215,7 +239,7 @@ for obj in data_objects["Contents"]:
 
     log.info("Downloading '{}' to '{}'".format(obj["Key"], dest))
     try:
-        transfer.download_file(SPACEMESH_S3_BUCKET, obj["Key"], dest)
+        transfer.download_file(SPACEMESH_S3_BUCKET, obj["Key"], dest, callback=LogProgress(dest))
     except Exception as e:
         log.error("Caught exception: {}".format(e))
 

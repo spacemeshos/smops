@@ -30,7 +30,8 @@ def call(Map config) {
                   spec:
                     type: NodePort
                     selector:
-                      miner-node: \"${node}\"
+                      app: miner
+                      miner-node: bootstrap
                       miner-pool: \"${config.pool_id}\"
                     ports:
                     - protocol: TCP

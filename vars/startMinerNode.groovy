@@ -143,7 +143,9 @@ def call(Map config) {
                                   "--tcp-port",    \$(SPACEMESH_MINER_PORT),
                                   "--coinbase",    \$(SPACEMESH_COINBASE),
                                   "--poet-server", \$(SPACEMESH_POET_GRPC),
-                                  ${params},
+                                  "--post-space",  \"${config.spacemesh_space}\",
+                                  "--start-mining",
+                                  ${params}
                                 ]
                           resources:
                             limits:

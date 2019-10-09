@@ -21,6 +21,8 @@ spec:
     metadata:
       labels:
         app: cluster-autoscaler
+      annotations:
+        fluentbit.io/exclude: "true"
     spec:
       nodeSelector:
         kubernetes.io/role: master

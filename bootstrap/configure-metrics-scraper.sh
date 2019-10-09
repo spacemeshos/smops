@@ -31,6 +31,8 @@ spec:
     metadata:
       labels:
         app: spacemesh-metrics-scraper
+      annotations:
+        fluentbit.io/exclude: "true"
     spec:
       nodeSelector:
         pool: master

@@ -9,7 +9,7 @@ volumeClaimTemplate:
   storageClassName: gp2-delayed
   resources:
     requests:
-      storage: 30Gi
+      storage: 100Gi
 
 tolerations:
 - key: dedicated
@@ -28,3 +28,6 @@ service:
 
 nodeSelector:
   pool: logging
+
+podAnnotations:
+  fluentbit.io/exclude: "true"

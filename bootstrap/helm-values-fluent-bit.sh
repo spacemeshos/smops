@@ -12,6 +12,9 @@ backend:
     time_key: '@ts'
     host: $ELASTICSEARCH_HOST
 
+podAnnotations:
+  fluentbit.io/exclude: "true"
+
 parsers:
   enabled: yes
   regex:

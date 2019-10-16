@@ -53,7 +53,7 @@ def scrape_nodes(core_api, pool_names=[]):
         } for pool, ctr in pools.items()]
 
 
-def _scrape_pods(core_api, basename="", selector=None):
+def _scrape_pods(core_api, basename="", selector=""):
     '''Get pod counts in the cluster'''
     logging.debug("Scraping pods")
     pod_status = {"ok": 0, "pending": 0, "error": 0}
@@ -86,8 +86,10 @@ def _scrape_deploy(basename, selector):
     apps_api = kubernetes.client.AppsV1Api()
     replicas = {"ok": 0, "total": 0}
     for deploy in apps_api.list_deployment_for_all_namespaces(label_selector=selector).items:
-        replicas["ok"] += deploy.status.available_replicas
-        replicas["total"] += deploy.status.replicas
+        if deploy.status.available_replicas:
+            replicas["ok"] += deploy.status.available_replicas
+        if deploy.status.replicas:
+            replicas["total"] += deploy.status.replicas
 
     return [{
         "MetricName": basename + "-replicas-" + status,

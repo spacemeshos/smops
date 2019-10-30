@@ -119,23 +119,6 @@ def call(String aws_region) {
         }
       }
 
-/*
-      stage("Update PoET config") {
-        steps {
-          echo "Setting PoET --nodeaddr"
-          sh """${kubectl_poet} patch configmap initfactory -p '{"data":{"poet_nodeaddr":"${bootstrap_addr}:${bootstrap_grpc_port}"}}'"""
-
-          echo "PoET pods before"
-          sh """${kubectl_poet} get pod -l app=poet"""
-          echo "Restarting PoET"
-          sh """${kubectl_poet} delete pod -l app=poet"""
-          sleep 5
-          echo "PoET pods after"
-          sh """${kubectl_poet} get pod -l app=poet"""
-        }
-      }
-      */
-
       stage("Create workers") {
         steps {
           script {

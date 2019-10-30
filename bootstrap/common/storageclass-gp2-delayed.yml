@@ -6,6 +6,7 @@ metadata:
   annotations:
     storageclass.kubernetes.io/is-default-class: "false"
 provisioner: kubernetes.io/aws-ebs
+allowVolumeExpansion: true
 parameters:
   fsType: ext4
   type: gp2

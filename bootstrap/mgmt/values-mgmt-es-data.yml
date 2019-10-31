@@ -1,11 +1,11 @@
 ---
 clusterName: "logs"
-nodeGroup: "master"
+nodeGroup: "data"
 
 roles:
-  master: "true"
-  ingest: "false"
-  data: "false"
+  master: "false"
+  ingest: "true"
+  data: "true"
 
 replicas: 2
 minimumMasterNodes: 1
@@ -25,7 +25,7 @@ tolerations:
 
 service:
   type: NodePort
-  nodePort: 31200
+  nodePort: 31201
 
 #service:
 #  type: LoadBalancer

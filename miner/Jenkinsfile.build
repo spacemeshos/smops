@@ -1,5 +1,3 @@
-aws_region = 'us-east-1'
-
 docker_image = 'spacemeshos-miner-init'
 docker_tag = 'latest'
 docker_repo = 'spacemeshos/spacemeshos-miner-init'

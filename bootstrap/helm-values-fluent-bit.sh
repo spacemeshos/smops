@@ -21,6 +21,11 @@ parsers:
     - name: panic
       regex: "panic*"
       timeKey: time
+    - name: mixed_format
+      regex: |
+        ^.*(?<jmessage>\{.*\}).*$
+                Decode_Field json jmessage
+
   json:
     - name: default-json
 
@@ -31,9 +36,18 @@ rawConfig: |
     @INCLUDE fluent-bit-output.conf
 
     [FILTER]
+        Name parser
+        Parser mixed_format
+        Key_Name log
+        Preserve_Key On
+        Reserve_Data On
+        Match *
+
+    [FILTER]
         Name record_modifier
         Match *
         Record spacemesh_cluster $CONTEXT
+        Remove_key jmessage
 
 tolerations:
 EOF

@@ -34,7 +34,7 @@ pipeline {
     stage("Push") {
       steps {
         dir("miner") {
-          sh """echo $DOCKER_PSW" | docker login -u $DOCKER_USR --password-stdin"""
+          sh """echo $DOCKER_PSW | docker login -u $DOCKER_USR --password-stdin"""
           sh """docker tag ${docker_image}:${docker_tag} ${docker_repo}:${docker_tag}"""
           sh """docker push ${docker_repo}:${docker_tag}"""
         }

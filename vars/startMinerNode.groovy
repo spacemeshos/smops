@@ -144,6 +144,7 @@ def call(Map config) {
                                   "--coinbase",    \$(SPACEMESH_COINBASE),
                                   "--poet-server", \$(SPACEMESH_POET_GRPC),
                                   "--post-space",  \"${config.spacemesh_space}\",
+                                  "--test-mode",
                                   "--start-mining",
                                   ${params}
                                 ]

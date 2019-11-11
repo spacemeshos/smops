@@ -1,7 +1,7 @@
 /* Seed job for spacemesh Jenkins */
 
-repo_url = "git@bitbucket.org:automatitdevops/spacemesh-misc.git"
-creds_id = "main_key"
+repo_url = "https://github.com/spacemeshos/smops.git"
+//creds_id = "main_key"
 dsl_name = "spacemesh.dsl"
 
 top_folder = "testnet"
@@ -65,7 +65,7 @@ def topFolderDSL(name, desc="", display_name="") {
                 scm {
                   git {
                     remote "${repo_url}"
-                    credentialsId "${creds_id}"
+                    /* credentialsId "\${creds_id}" */
                   }
                 }
               }
@@ -216,7 +216,7 @@ def scmDSL(script_path="Jenkinsfile") {
             git {
               remote {
                 url "${repo_url}"
-                credentials "${creds_id}"
+                /* credentials "\${creds_id}" */
               }
               branch "master"
             }

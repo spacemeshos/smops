@@ -74,9 +74,9 @@ def call(Map config) {
   echo "Bootstrapping from: ${bootstrap_addr}:${config.port}"
 
   echo "Getting bootstrap miner_id from the logs"
-  timeout(time: 600, unit: 'SECONDS') {
+  retry(10) {
     bootstrap_id = shell("""\
-      ${kubectl} logs ${bootstrap_pod} --tail=-1 -f |\\
+      ${kubectl} logs ${bootstrap_pod} |\\
         sed -ne '/Local node identity / { s/.\\+Local node identity >> \\([a-zA-Z0-9]\\+\\).*/\\1/ ; p; q; }'
     """.stripIndent().trim())
   }

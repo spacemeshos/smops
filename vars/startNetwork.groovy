@@ -156,22 +156,18 @@ def call(String aws_region) {
           }
 
           echo " >>> Bootnodes: ${bootnode.netaddr}"
-          echo " >>> PoET --nodeaddr: ${bootnode.nodeaddr}"
+          echo " >>> PoET nodeAddress: ${bootnode.nodeaddr}"
         }
       }
 
       stage("Update PoET config") {
         steps {
-          echo "Setting PoET --nodeaddr"
-          sh """${kubectl_poet} patch configmap initfactory -p '{"data":{"poet_nodeaddr":"${bootnode.nodeaddr}"}}'"""
-
-          echo "PoET pods before"
-          sh """${kubectl_poet} get pod -l app=poet"""
-          echo "Restarting PoET"
-          sh """${kubectl_poet} delete pod -l app=poet"""
-          sleep 5
-          echo "PoET pods after"
-          sh """${kubectl_poet} get pod -l app=poet"""
+          echo "Getting PoET podIP"
+          script {
+            poet_ip = shell("""${kubectl_poet} get pod -l app=poet --template '{{(index .items 0).status.podIP}}'""")
+          }
+          echo "Invoking start_mining at '${poet_ip}'"
+          sh """curl -is --data '{"nodeAddress": "${bootnode.nodeaddr}"}' http://${poet_ip}:8080/v1/start"""
         }
       }
 

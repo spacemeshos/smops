@@ -147,6 +147,9 @@ def call(String aws_region) {
 
       stage("Start bootstrap node") {
         steps {
+          echo "Stopping the PoET"
+          sh """${kubectl_poet} delete pod -l app=poet"""
+
           script {
             bootnode = startBootstrapNode(aws_region: params.BOOT_REGION, pool_id: pool_id, \
                                           miner_image: params.MINER_IMAGE, port: bootstrap_port, \
@@ -163,8 +166,13 @@ def call(String aws_region) {
       stage("Update PoET config") {
         steps {
           echo "Getting PoET podIP"
-          script {
-            poet_ip = shell("""${kubectl_poet} get pod -l app=poet --template '{{(index .items 0).status.podIP}}'""")
+          retry(5) {
+            script {
+              poet_ip = shell("""${kubectl_poet} get pod -l app=poet --template '{{(index .items 0).status.podIP}}'""")
+              if(! poet_ip) {
+                error "No podIP for app=poet"
+              }
+            }
           }
           echo "Invoking start_mining at '${poet_ip}'"
           sh """curl -is --data '{"nodeAddress": "${bootnode.nodeaddr}"}' http://${poet_ip}:8080/v1/start"""

@@ -4,11 +4,10 @@ nodeGroup: "data"
 
 roles:
   master: "false"
-  ingest: "true"
   data: "true"
 
 replicas: 2
-minimumMasterNodes: 1
+#minimumMasterNodes: 1
 
 volumeClaimTemplate:
   accessModes: [ "ReadWriteOnce" ]
@@ -27,21 +26,18 @@ service:
   type: NodePort
   nodePort: 31201
 
-#service:
-#  type: LoadBalancer
-#  annotations:
-#    service.beta.kubernetes.io/aws-load-balancer-internal: "true"
-
 nodeSelector:
   pool: logging
 
 podAnnotations:
   fluentbit.io/exclude: "true"
 
+esJavaOpts: "-Xms32g -Xmx32g"
+
 resources:
   requests:
     cpu: "6"
-    memory: "2Gi"
+    memory: "48Gi"
   limits:
-    cpu: "6"
-    memory: "2Gi"  
+    cpu: "7900m"
+    memory: "60Gi"

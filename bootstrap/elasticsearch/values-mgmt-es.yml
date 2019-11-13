@@ -4,8 +4,9 @@ nodeGroup: "master"
 
 roles:
   master: "true"
-  ingest: "false"
-  data: "false"
+  data: "true"
+
+#masterTerminationFix: true
 
 replicas: 2
 minimumMasterNodes: 1
@@ -27,21 +28,18 @@ service:
   type: NodePort
   nodePort: 31200
 
-#service:
-#  type: LoadBalancer
-#  annotations:
-#    service.beta.kubernetes.io/aws-load-balancer-internal: "true"
-
 nodeSelector:
   pool: logging
 
 podAnnotations:
   fluentbit.io/exclude: "true"
 
+esJavaOpts: "-Xms32g -Xmx32g"
+
 resources:
   requests:
     cpu: "6"
-    memory: "2Gi"
+    memory: "48Gi"
   limits:
-    cpu: "6"
-    memory: "2Gi"  
+    cpu: "7900m"
+    memory: "60Gi"

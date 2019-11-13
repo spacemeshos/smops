@@ -1,5 +1,5 @@
 ---
-elasticsearchHosts: "http://$(LOGS_MASTER_SERVICE_HOST):9200"
+elasticsearchHosts: "http://internal-spacemesh-testnet-mgmt-es-116988061.us-east-1.elb.amazonaws.com:9200"
 
 tolerations:
 - key: dedicated

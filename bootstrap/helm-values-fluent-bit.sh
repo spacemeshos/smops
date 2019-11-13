@@ -1,20 +1,41 @@
 #!/bin/bash
 
-ELASTICSEARCH_HOST="internal-spacemesh-testnet-mgmt-es-116988061.us-east-1.elb.amazonaws.com"
+#ELASTICSEARCH_HOST="internal-spacemesh-testnet-mgmt-es-116988061.us-east-1.elb.amazonaws.com"
+FORWARD_HOST="spacemesh-testnet-mgmt-fb-fwd-lb-8e14e7d176466555.elb.us-east-1.amazonaws.com"
+FORWARD_PORT=24224
 
 CONTEXT=$1
 shift
 
+# Add input file selection
+case "$CONTEXT" in
+    miner-*)
+        LOGPATH=/var/log/containers/miner-*.log
+        ;;
+    initfactory-*)
+        LOGPATH=/var/log/containers/initfactory-*.log
+        ;;
+    mgmt-*)
+        LOGPATH=/var/log/containers/poet-*.log
+        ;;
+    *)
+        LOGPATH=/var/log/containers/*.log
+        ;;
+esac
+
 cat <<EOF
 backend:
-  type: es
-  es:
-    time_key: '@ts'
-    host: $ELASTICSEARCH_HOST
+  type: forward
+  forward:
+    host: $FORWARD_HOST
+    port: $FORWARD_PORT
 
 podAnnotations:
   fluentbit.io/exclude: "true"
 
+input:
+  tail:
+    path: $LOGPATH
 parsers:
   enabled: yes
   regex:
@@ -33,14 +54,6 @@ rawConfig: |
     @INCLUDE fluent-bit-input.conf
     @INCLUDE fluent-bit-filter.conf
     @INCLUDE fluent-bit-output.conf
-
-    [FILTER]
-        Name parser
-        Match *
-        Parser default-json
-        Key_Name log
-        PreserveKey On
-        Reserve_Data On
 
     [FILTER]
         Name record_modifier

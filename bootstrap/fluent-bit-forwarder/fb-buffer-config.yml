@@ -1,0 +1,33 @@
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  namespace: logging
+  name: fluent-bit-buffer
+data:
+  fluent-bit.conf: |
+    [SERVICE]
+        Daemon       Off
+        Flush        30
+        Log_Level    debug
+        Parsers_file parsers.conf
+        Plugins_file plugins.conf
+        HTTP_Server  Off
+
+    [INPUT]
+        Name              forward
+        Buffer_Chunk_Size 16M
+        Buffer_Max_Size   32M
+        Mem_Buf_Limit     1G
+
+    [OUTPUT]
+        Name            es
+        Match           *
+        Host            ${LOGS_ES_HOST}
+        Port            9200
+        Type            flb_type
+        Time_Key        @ts
+        Retry_Limit     False
+        Logstash_Format On
+        Logstash_Prefix kubernetes_cluster
+  logs_es_host: internal-spacemesh-testnet-mgmt-es-116988061.us-east-1.elb.amazonaws.com

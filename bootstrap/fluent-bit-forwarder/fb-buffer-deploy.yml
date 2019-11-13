@@ -1,0 +1,50 @@
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  namespace: logging
+  name: fluent-bit-buffer
+  labels:
+    app: fluent-bit-buffer
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: fluent-bit-buffer
+  template:
+    metadata:
+      labels:
+        app: fluent-bit-buffer
+    spec:
+      nodeSelector:
+        pool: logging
+      tolerations:
+        - effect: NoSchedule
+          key: dedicated
+          value: logging
+          operator: Equal
+
+      volumes:
+      - configMap:
+          defaultMode: 420
+          name: fluent-bit-buffer
+        name: fb-config
+
+      containers:
+        - name: default
+          image: fluent/fluent-bit:1.2.2
+          env:
+            - name: LOGS_ES_HOST
+              valueFrom:
+                configMapKeyRef:
+                  name: fluent-bit-buffer
+                  key:  logs_es_host
+          ports:
+            - containerPort: 24224
+              protocol: TCP
+          volumeMounts:
+            - mountPath: /fluent-bit/etc/fluent-bit.conf
+              name: fb-config
+              subPath: fluent-bit.conf
+
+# vim:ts=2 sw=2 et:

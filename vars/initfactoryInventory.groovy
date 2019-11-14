@@ -19,7 +19,7 @@ def call() {
         agent any
 
         stages {
-            stage('Hello') {
+            stage('Inventory') {
                 steps {
                     withAWS(credentials:'aws') {
                         script {

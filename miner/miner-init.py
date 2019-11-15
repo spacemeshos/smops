@@ -114,7 +114,7 @@ else:
                                    ":space": {"N": str(SPACEMESH_SPACE)},
                                },
                                ProjectionExpression="id",
-                               Limit=10,
+                               Limit=100,
                                )
         except Exception as e:
             log.fatal("Caught exception: {}".format(e))
@@ -135,7 +135,7 @@ else:
                                    ":space": {"N": str(SPACEMESH_SPACE)},
                                    },
                                    ProjectionExpression="id",
-                                   Limit=10,
+                                   Limit=100,
                                    )
             except Exception as e:
                 log.fatal("Caught exception: {}".format(e))
@@ -177,11 +177,10 @@ else:
         log.info("Successfully locked data file '{}' after {} tries".format(data_id, i+1))
         break
 
-
-# Exit if no data file could be found
-if data_id is None:
-    log.fatal("Couldn't obtain a data file")
-    raise SystemExit(2)
+    # Exit if no data file could be found
+    else:
+        log.fatal("Couldn't obtain a data file")
+        raise SystemExit(2)
 
 ### Report the result
 log.info("Will proceed with data file '{}'".format(data_id))

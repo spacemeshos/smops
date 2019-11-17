@@ -13,7 +13,7 @@
 def call(Map config) {
   /* Defaults */
   config = [miner_image: "spacemeshos/go-spacemesh:develop",
-            init_miner_image: "534354616613.dkr.ecr.us-east-1.amazonaws.com/spacemesh-testnet-miner-init:latest",
+            init_miner_image: "spacemeshos/spacemeshos-miner-init:latest",
             cpu_requests: "1950m", cpu_limit: "1950m",
             params: [],
             ] + config

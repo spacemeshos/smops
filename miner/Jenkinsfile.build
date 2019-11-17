@@ -1,8 +1,6 @@
-aws_region = 'us-east-1'
-
-docker_image = 'spacemeshos-testnet-miner-init'
+docker_image = 'spacemeshos-miner-init'
 docker_tag = 'latest'
-docker_repo = '534354616613.dkr.ecr.us-east-1.amazonaws.com/spacemesh-testnet-miner-init'
+docker_repo = 'spacemeshos/spacemeshos-miner-init'
 
 /*
   PIPELINE
@@ -13,7 +11,9 @@ pipeline {
   options {
     buildDiscarder(logRotator(numToKeepStr: '10')) // Keep last 10 builds only
   }
-
+  environment {
+      DOCKER = credentials("dockerhub")
+  }
   stages {
     stage("Checkout") {
       steps {
@@ -32,8 +32,9 @@ pipeline {
     stage("Push") {
       steps {
         dir("miner") {
+          sh """echo $DOCKER_PSW | docker login -u $DOCKER_USR --password-stdin"""
           sh """docker tag ${docker_image}:${docker_tag} ${docker_repo}:${docker_tag}"""
-          sh """\$(aws ecr get-login --region=${aws_region} --no-include-email) && docker push ${docker_repo}:${docker_tag}"""
+          sh """docker push ${docker_repo}:${docker_tag}"""
         }
       }
     }

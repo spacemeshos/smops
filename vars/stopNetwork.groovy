@@ -7,17 +7,9 @@
     stopNetwork()
 */
 
-def call(String aws_region) {
-  /* Defaults */
-  default_miner_image = "spacemeshos/go-spacemesh:develop"
-  aws_regions = [
-    "ap-northeast-2",
-    "eu-north-1",
-    "us-east-1",
-    "us-east-2",
-    "us-west-2",
-  ]
+import static io.spacemesh.awsinfra.commons.*
 
+def call(String aws_region) {
   /*
     PIPELINE
    */
@@ -40,6 +32,12 @@ def call(String aws_region) {
             }
             parallel stages
           }
+        }
+      }
+
+      stage("Stop PoET") {
+        steps {
+          stopPoET()
         }
       }
     }

@@ -21,6 +21,7 @@ def call(String aws_region) {
   kubectl_poet = "kubectl --context=mgmt-us-east-1"
 
   /* Pipeline global vars */
+  poet_params = []
   miner_count = [:]
   worker_ports = []
   bootnode = [:]
@@ -46,6 +47,11 @@ def call(String aws_region) {
     parameters {
       choice name: 'BOOT_REGION', choices: aws_regions, \
              description: "Region to run the bootstrap node at"
+
+      string name: 'POET_IMAGE', defaultValue: "spacemeshos/poet:develop", trim: true, \
+             description: 'Container image to use for PoET'
+      string name: 'POET_PARAMS', defaultValue: "", trim: true, \
+             description: 'PoET parameters'
 
       /* FIXME: Move these to the seed job to be scriptable */
       string name: 'MINER_COUNT[ap-northeast-2]', defaultValue: '0', trim: true, \
@@ -133,6 +139,10 @@ def call(String aws_region) {
               bootstrap_extra_params += ["--genesis-time", genesis_time]
             }
 
+            if(params.POET_PARAMS) {
+              poet_params = params.POET_PARAMS.tokenize()
+            }
+
             bootstrap_port = random_port()
           }
 
@@ -145,11 +155,14 @@ def call(String aws_region) {
         }
       }
 
+      stage("Start PoET") {
+        steps {
+          startPoET image: params.POET_IMAGE, params: poet_params
+        }
+      }
+
       stage("Start bootstrap node") {
         steps {
-          echo "Stopping the PoET"
-          sh """${kubectl_poet} delete pod -l app=poet"""
-
           script {
             bootnode = startBootstrapNode(aws_region: params.BOOT_REGION, pool_id: pool_id, \
                                           miner_image: params.MINER_IMAGE, port: bootstrap_port, \
@@ -207,7 +220,7 @@ def call(String aws_region) {
 
       stage("Archive artifacts") {
         steps {
-          archiveArtifacts "miner-*-bootstrap-svc.yml, miner-*-bootstrap-deploy.yml"
+          archiveArtifacts "poet-deploy.yml, miner-*-bootstrap-svc.yml, miner-*-bootstrap-deploy.yml"
         }
       }
     }

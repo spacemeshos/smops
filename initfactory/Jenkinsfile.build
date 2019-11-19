@@ -14,7 +14,9 @@ pipeline {
   options {
     buildDiscarder(logRotator(numToKeepStr: '10')) // Keep last 10 builds only
   }
-
+  environment {
+      DOCKER = credentials("dockerhub")
+  }
   stages {
     stage("Checkout") {
       steps {

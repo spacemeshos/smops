@@ -3,7 +3,7 @@ def call(aws_region="us-east-2") {
   def kubectl = "kubectl --context=initfactory-${aws_region}"
 
   /* Container image to use */
-  def initfactory_image = "534354616613.dkr.ecr.us-east-1.amazonaws.com/spacemesh-testnet-initfactory:latest"
+  def initfactory_image = "spacemeshos/spacemeshos-initfactory:latest"
 
   /* Job resources and other params */
   def backoff_limit = 20

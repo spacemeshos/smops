@@ -10,6 +10,11 @@
 
 */
 
+def randomID() {
+    Random rand = new Random();
+    return String.format("%05d", rand.nextInt(100000));
+}
+
 def call(Map config) {
   /* Defaults */
   config = [miner_image: "spacemeshos/go-spacemesh:develop",
@@ -19,8 +24,8 @@ def call(Map config) {
             ] + config
 
   kubectl = "kubectl --context=miner-${config.aws_region}"
-
-  node = "miner-${config.pool_id}-${config.node_id}"
+  randomNodeID = randomID()
+  node = "miner-${config.pool_id}-${config.node_id}-"+randomNodeID
   params = """\"${config.params.join('", "')}\""""
   echo "Writing manifest for ${node}"
   writeFile file: "${node}-deploy.yml", \
@@ -60,7 +65,7 @@ def call(Map config) {
                         app: miner
                         miner-pool: \"${config.pool_id}\"
                         miner-node: ${config.node_id}
-                        worker-id:  \"${config.pool_id}-${config.node_id}\"
+                        worker-id:  \"${config.pool_id}-${config.node_id}-${randomNodeID}\"
                     spec:
                       nodeSelector:
                         pool: miner
@@ -99,7 +104,7 @@ def call(Map config) {
                                   name: initfactory
                                   key: initdata_dynamodb_region
                             - name: SPACEMESH_WORKER_ID
-                              value: \"${config.pool_id}-${config.node_id}\"
+                              value: \"${config.pool_id}-${config.node_id}-${randomNodeID}\"
                             - name: SPACEMESH_WORKDIR
                               value: "/root"
                             - name: SPACEMESH_DATADIR

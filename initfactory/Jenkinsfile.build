@@ -2,7 +2,7 @@ aws_region = 'us-east-1'
 
 docker_image = 'spacemeshos-initfactory'
 docker_tag = 'latest'
-docker_repo = '534354616613.dkr.ecr.us-east-1.amazonaws.com/spacemesh-testnet-initfactory'
+docker_repo = 'spacemeshos/spacemeshos-initfactory'
 docker_baseimage = "spacemeshos/post:latest"
 
 /*
@@ -36,8 +36,9 @@ pipeline {
     stage("Push") {
       steps {
         dir("initfactory") {
+          sh """echo $DOCKER_PSW | docker login -u $DOCKER_USR --password-stdin"""
           sh """docker tag ${docker_image}:${docker_tag} ${docker_repo}:${docker_tag}"""
-          sh """\$(aws ecr get-login --region=${aws_region} --no-include-email) && docker push ${docker_repo}:${docker_tag}"""
+          sh """docker push ${docker_repo}:${docker_tag}"""
         }
       }
     }

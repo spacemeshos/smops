@@ -7,18 +7,12 @@
     startNetwork()
 */
 
+import static io.spacemesh.awsinfra.commons.*
+
 def call(String aws_region) {
   /* Defaults */
-  default_miner_image = "spacemeshos/go-spacemesh:develop"
-  aws_regions = [
-    "ap-northeast-2",
-    "eu-north-1",
-    "us-east-1",
-    "us-east-2",
-    "us-west-2",
-  ]
 
-  kubectl_poet = "kubectl --context=mgmt-us-east-1"
+  kubectl_poet = "kubectl --context=${poet_ctx}"
 
   /* Pipeline global vars */
   poet_params = []
@@ -27,12 +21,6 @@ def call(String aws_region) {
   bootnode = [:]
   extra_params = []
   bootstrap_extra_params = []
-
-  /* Library function: generate random hex string */
-  random_id = {->
-    def rnd = new Random()
-    return {-> String.format("%06x",(rnd.nextFloat() * 2**31) as Integer)[0..5]}
-  }()
 
   /*
     PIPELINE
@@ -48,7 +36,7 @@ def call(String aws_region) {
       choice name: 'BOOT_REGION', choices: aws_regions, \
              description: "Region to run the bootstrap node at"
 
-      string name: 'POET_IMAGE', defaultValue: "spacemeshos/poet:develop", trim: true, \
+      string name: 'POET_IMAGE', defaultValue: default_poet_image, trim: true, \
              description: 'Container image to use for PoET'
       string name: 'POET_PARAMS', defaultValue: "", trim: true, \
              description: 'PoET parameters'

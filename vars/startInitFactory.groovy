@@ -7,16 +7,9 @@
     startInitFactory()
 */
 
-def call() {
-  /* Defaults */
-  aws_regions = [
-    "ap-northeast-2",
-    "eu-north-1",
-    "us-east-1",
-    "us-east-2",
-    "us-west-2",
-  ]
+import static io.spacemesh.awsinfra.commons.*
 
+def call() {
   /* Pipeline global vars */
   worker_count = [:]
 

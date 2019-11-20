@@ -1,3 +1,14 @@
+/*
+  Run InitFactory in a region
+
+  Example:
+
+    @Library("spacemesh") _
+    runInitFactoryWorkers("us-east-1")
+*/
+
+import static io.spacemesh.awsinfra.commons.*
+
 def call(aws_region="us-east-2") {
   /* kubectl command */
   def kubectl = "kubectl --context=initfactory-${aws_region}"

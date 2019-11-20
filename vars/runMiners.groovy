@@ -7,21 +7,14 @@
     runMiners("us-east-1")
 */
 
-def call(String aws_region) {
-  /* Defaults */
-  default_miner_image = "spacemeshos/go-spacemesh:develop"
+import static io.spacemesh.awsinfra.commons.*
 
+def call(String aws_region) {
   /* Pipeline global vars */
   miner_count = 0
   worker_ports = []
   bootnodes = ""
   extra_params = []
-
-  /* Library function: generate random hex string */
-  random_id = {->
-    def rnd = new Random()
-    return {-> String.format("%06x",(rnd.nextFloat() * 2**31) as Integer)[0..5]}
-  }()
 
   /*
     PIPELINE
@@ -88,6 +81,7 @@ def call(String aws_region) {
             assert miner_count > 0
 
             pool_id = params.POOL_ID ?: random_id()
+            run_id = random_id()
 
             if(params.EXTRA_PARAMS.trim()) {
               extra_params = params.EXTRA_PARAMS.trim().tokenize()
@@ -125,7 +119,7 @@ def call(String aws_region) {
             worker_ports.eachWithIndex({port, i ->
               i++
               def i_str = String.format("%04d", i)
-              startMinerNode aws_region: aws_region, pool_id: pool_id, node_id: "node-${i_str}", \
+              startMinerNode aws_region: aws_region, pool_id: pool_id, node_id: "${run_id}-node-${i_str}", \
                              miner_image: params.MINER_IMAGE, port: port, \
                              spacemesh_space: SPACEMESH_SPACE, vol_size: vol_size, \
                              params: extra_params

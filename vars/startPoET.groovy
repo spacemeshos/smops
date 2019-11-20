@@ -3,7 +3,7 @@
 
   Example:
 
-    startPoET image: "...", name: "poet1", params: [],
+    startPoET image: "...", name: "poet1", params: [], aws_region: "us-east-1",
               pool: "testpoet", pool_asg: "spacemesh-testnet-mgmt-us-east-1-testpoet"
 
 */
@@ -13,10 +13,11 @@ import static io.spacemesh.awsinfra.common.*
 def call(Map config) {
   /* Defaults */
   config = [
-             image: "spacemeshos/poet:develop",
-             pool: "poet",
-             pool_asg: "spacemesh-testnet-mgmt-us-east-1-testpoet",
+             image: default_poet_image,
              name: "poet",
+             pool: "poet",
+             pool_asg: poet_pool_asg,
+             aws_region: aws_poet_region,
              params: [],
            ] + config
 
@@ -73,7 +74,7 @@ def call(Map config) {
   sh """\
      aws autoscaling update-auto-scaling-group \
                      --auto-scaling-group-name ${config.pool_asg} \
-                     --region=${aws_poet_region} \
+                     --region=${config.aws_region} \
                      --desired-capacity 1
      """.stripIndent()
 

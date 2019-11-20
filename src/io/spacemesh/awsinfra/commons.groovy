@@ -1,6 +1,6 @@
 package io.spacemesh.awsinfra
 
-class common {
+class commons {
   static final aws_regions = [
     "ap-northeast-2",
     "eu-north-1",
@@ -12,7 +12,7 @@ class common {
 
   static final aws_poet_region = "us-east-1"
   static final poet_ctx = "mgmt-us-east-1"
-  static final poet_pool_asg: "spacemesh-testnet-mgmt-us-east-1-poet"
+  static final poet_pool_asg = "spacemesh-testnet-mgmt-us-east-1-poet"
   static final default_poet_image = "spacemeshos/poet:develop"
 
   static final default_miner_image = "spacemeshos/go-spacemesh:develop"

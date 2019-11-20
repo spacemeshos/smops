@@ -1,7 +1,6 @@
 /* Generate random hex string */
-def rnd = new Random()
-
 def call() {
+  def rnd = new Random()
   String.format("%06x",(rnd.nextFloat() * 2**31) as Integer)[0..5]
 }
 

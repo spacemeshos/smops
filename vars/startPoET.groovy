@@ -8,7 +8,7 @@
 
 */
 
-import static io.spacemesh.awsinfra.common.*
+import static io.spacemesh.awsinfra.commons.*
 
 def call(Map config) {
   /* Defaults */

@@ -39,6 +39,8 @@ def call(Map config) {
                     selector:
                       matchLabels:
                         app: ${config.name}
+                    strategy:
+                      type: Recreate
                     template:
                       metadata:
                         labels:

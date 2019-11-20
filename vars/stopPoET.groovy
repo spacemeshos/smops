@@ -37,4 +37,3 @@ def call(Map config) {
 }
 
 /* vim: set filetype=groovy ts=2 sw=2 et : */
-

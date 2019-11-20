@@ -3,7 +3,8 @@
 
   Example:
 
-    startPoET name: "poet1", pool_asg: "spacemesh-testnet-mgmt-us-east-1-testpoet",
+    startPoET name: "poet1", aws_region: "us-east-1",
+              pool_asg: "spacemesh-testnet-mgmt-us-east-1-testpoet",
               keep_nodes: true
 
 */
@@ -14,7 +15,8 @@ def call(Map config) {
   /* Defaults */
   config = [
              name: "poet",
-             pool_asg: "spacemesh-testnet-mgmt-us-east-1-poet",
+             pool_asg: poet_pool_asg,
+             aws_region: aws_poet_region,
              keep_nodes: false,
            ] + config
 
@@ -30,7 +32,7 @@ def call(Map config) {
     sh """\
        aws autoscaling update-auto-scaling-group \
                        --auto-scaling-group-name ${config.pool_asg} \
-                       --region=${aws_poet_region} \
+                       --region=${config.aws_region} \
                        --desired-capacity 0
        """.stripIndent()
   }

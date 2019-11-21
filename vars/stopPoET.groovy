@@ -11,7 +11,7 @@
 
 import static io.spacemesh.awsinfra.commons.*
 
-def call(Map config) {
+def call(config = [:]) {
   /* Defaults */
   config = [
              name: "poet",

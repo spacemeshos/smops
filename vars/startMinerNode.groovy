@@ -6,7 +6,7 @@
     startMinerNode aws_region: "us-east-1", pool_id: "test01", node_id: "node-0001", \
                    init_miner_image: "...", miner_image: "...", vol_size: "300", port: 65100, \
                    spacemesh_space: "1048576", cpu_limit: "1950m", cpu_requests: "1950m", \
-                   params: []
+                   grpc_port: 9091, params: []
 
 */
 
@@ -17,7 +17,7 @@ def call(Map config) {
   config = [miner_image: default_miner_image,
             init_miner_image: "spacemeshos/spacemeshos-miner-init:latest",
             cpu_requests: "1950m", cpu_limit: "1950m",
-            params: [],
+            grpc_port: 0, params: [],
             ] + config
 
   kubectl = "kubectl --context=miner-${config.aws_region}"
@@ -26,7 +26,7 @@ def call(Map config) {
   params = """\"${config.params.join('", "')}\""""
   echo "Writing manifest for ${node}"
   writeFile file: "${node}-deploy.yml", \
-            text: """\
+            text: ("""\
                 ---
                 apiVersion: v1
                 kind: PersistentVolumeClaim
@@ -125,6 +125,17 @@ def call(Map config) {
                             - protocol: UDP
                               containerPort: ${config.port}
                               hostPort: ${config.port}
+            """ + (config.grpc_port ? """\
+
+                            - protocol: TCP
+                              containerPort: ${config.grpc_port}
+
+                          readinessProbe:
+                            initialDelaySeconds: 10
+                            failureThreshold: 30
+                            tcpSocket:
+                              port: ${config.grpc_port}
+            """ : "") + """\
 
                           env:
                             - name: SPACEMESH_MINER_PORT
@@ -158,7 +169,7 @@ def call(Map config) {
                           volumeMounts:
                             - name: miner-storage
                               mountPath: /root
-            """.stripIndent()
+            """).stripIndent()
 
   echo "Creating ${node}"
   sh """${kubectl} create --save-config -f ${node}-deploy.yml"""

@@ -56,6 +56,8 @@ def call(Map config) {
                   selector:
                     matchLabels:
                       app: miner
+                  strategy:
+                    type: Recreate
                   template:
                     metadata:
                       labels:

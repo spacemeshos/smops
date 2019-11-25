@@ -277,7 +277,7 @@ def spacemeshDSL() {
       definition {
         sandbox()
         script '''
-          @Library("spacemesh@feature/k8s-dashboard") _
+          @Library("spacemesh") _
 
           pipeline {
              agent any

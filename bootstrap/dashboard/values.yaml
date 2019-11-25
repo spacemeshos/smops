@@ -1,0 +1,20 @@
+---
+enableSkipLogin: true
+enableInsecureLogin: true
+
+nodeSelector:
+  pool: master
+tolerations:
+  - key: dedicated
+    operator: Equal
+    value: master
+    effect: NoSchedule
+
+service:
+  type: NodePort
+  nodePort: 30909
+
+rbac:
+  clusterAdminRole: yes
+
+# vim: filetype=yaml ts=2 sw=2 et ai:

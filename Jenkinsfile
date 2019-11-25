@@ -51,10 +51,24 @@ pipeline {
 }
 
 def topFolderDSL(name, desc="", display_name="") {
+  def default_columns = """\
+      columns {
+        status()
+        weather()
+        name()
+        lastSuccess()
+        lastFailure()
+        lastDuration()
+        buildButton()
+      }
+  """.trim()
+  def region_names = aws_regions.collect({"""name "$it\""""}).join("\n")
+
   """\
   folder("${name}") {
     description "${desc}"
     displayName "${display_name}"
+
     properties {
       folderLibraries {
         libraries {
@@ -75,6 +89,29 @@ def topFolderDSL(name, desc="", display_name="") {
         }
       }
     }
+
+    views {
+      listView("Default") {
+        description "TestNet-wide jobs"
+        jobs {
+          name "unlock-initdata"
+          name "start-miners"
+          name "stop-miners"
+          name "start-initfactory"
+          name "cleanup-initfactory-workers"
+        }
+        ${default_columns}
+      }
+      listView("Regions") {
+        description "TestNet regions"
+        jobs {
+          ${region_names}
+        }
+        ${default_columns}
+      }
+    }
+
+    primaryView("Default")
   }
   """.stripIndent()
 }
@@ -130,7 +167,6 @@ def testnetCleanAllDSL(top_folder) {
 
   """\
   pipelineJob("${top_folder}/cleanup-initfactory-workers") {
-    previousNames("${top_folder}/__cleanup-initfactory-workers")
     description "Clean all the finished InitFactory workers in all regions"
 
     triggers {
@@ -152,7 +188,6 @@ def testnetUnlockAllDSL(top_folder) {
 
   """\
   pipelineJob("${top_folder}/unlock-initdata") {
-    previousNames("${top_folder}/__unlock-initdata")
     description "Unlock all the init data sets in all regions"
     definition {
       cps {

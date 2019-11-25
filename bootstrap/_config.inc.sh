@@ -4,4 +4,3 @@ declare -A POOLS
 POOLS[miner]="master miner"
 POOLS[initfactory]="master initfactory"
 POOLS[mgmt]="master poet"
-#POOLS[mgmt]="master logging poet"

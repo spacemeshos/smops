@@ -1,29 +1,34 @@
-#!/bin/bash
+# Chart parameters
+RELEASENAME=fluent-bit
+NAMESPACE=logging
+CHART_NAME=stable/fluent-bit
+CHART_VERSION=2.7.0
+CHART_VALUES=-
 
-#ELASTICSEARCH_HOST="internal-spacemesh-testnet-mgmt-es-116988061.us-east-1.elb.amazonaws.com"
 FORWARD_HOST="spacemesh-testnet-mgmt-fb-fwd-lb-8e14e7d176466555.elb.us-east-1.amazonaws.com"
 FORWARD_PORT=24224
 
-CONTEXT=$1
-shift
+get_values() {
+  CLUSTER=$1
+  REGION=$2
 
-# Add input file selection
-case "$CONTEXT" in
-    miner-*)
-        LOGPATH=/var/log/containers/miner-*.log
-        ;;
-    initfactory-*)
-        LOGPATH=/var/log/containers/initfactory-*.log
-        ;;
-    mgmt-*)
-        LOGPATH=/var/log/containers/poet-*.log
-        ;;
-    *)
-        LOGPATH=/var/log/containers/*.log
-        ;;
-esac
+  # Add input file selection
+  case "$CLUSTER" in
+      miner)
+          LOGPATH='/var/log/containers/miner-*.log'
+          ;;
+      initfactory)
+          LOGPATH='/var/log/containers/initfactory-*.log'
+          ;;
+      mgmt)
+          LOGPATH='/var/log/containers/poet-*.log'
+          ;;
+      *)
+          LOGPATH='/var/log/containers/*.log'
+          ;;
+  esac
 
-cat <<EOF
+  cat <<EOF
 backend:
   type: forward
   forward:
@@ -58,18 +63,19 @@ rawConfig: |
     [FILTER]
         Name record_modifier
         Match *
-        Record spacemesh_cluster $CONTEXT
+        Record spacemesh_cluster ${CLUSTER}-${REGION}
 
 tolerations:
 EOF
 
-for pool in "$@"; do
-    cat <<EOF
+  for P in ${POOLS[$CLUSTER]}; do
+      cat <<EOF
 - key: dedicated
   operator: Equal
-  value: $pool
+  value: $P
   effect: NoSchedule
 EOF
-done
+  done
+}
 
-# vim:set ts=4 sw=4 ai et:
+# vim: ts=2 sw=2 et ai:

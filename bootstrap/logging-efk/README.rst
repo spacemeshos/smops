@@ -96,4 +96,6 @@ Elasticsearch settings
    should not have any replicas (to save space and increase performance), and increasing the
    refresh interval to reduce the load.
 
+
+
 .. vim: filetype=rst tw=98 ts=2 sw=2:

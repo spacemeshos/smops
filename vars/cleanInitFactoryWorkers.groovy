@@ -1,3 +1,12 @@
+/*
+  Clean completed InitFactory jobs in a region
+
+  Example:
+
+    @Library("spacemesh") _
+    stopInitFactoryWorkers("us-east-1")
+*/
+
 def call(aws_region="us-east-2") {
   /* kubectl command */
   def kubectl = "kubectl --context=initfactory-${aws_region}"
@@ -12,9 +21,6 @@ def call(aws_region="us-east-2") {
     options {
       buildDiscarder(logRotator(numToKeepStr: '10')) // Keep last 10 builds only
     }
-
-    /* Job triggers - run every 15 minutes */
-    triggers{ cron('H/15 * * * *') }
 
     agent any
 

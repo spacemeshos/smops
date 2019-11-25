@@ -1,3 +1,12 @@
+/*
+  Unlock InitData in the region
+
+  Example:
+
+    @Library("spacemesh") _
+    unlockDataSet("us-east-1")
+*/
+
 def call(aws_region="us-east-2") {
   /*
     PIPELINE

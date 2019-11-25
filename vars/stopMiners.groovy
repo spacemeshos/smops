@@ -1,3 +1,12 @@
+/*
+  Stop all TestNet miners in the region
+
+  Example:
+
+    @Library("spacemesh") _
+    stopMiners("us-east-1")
+*/
+
 def call(aws_region="us-east-2") {
   kubectl = "kubectl --context=miner-${aws_region}"
 

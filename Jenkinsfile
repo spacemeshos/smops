@@ -105,28 +105,38 @@ def simpleJobDSL(name, func, desc="") {
 }
 
 def buildJobPerRegions(job_name) {
-  aws_regions.collect({region->"""
-      stage(\"${region}\") {
-        steps {
-          build job: \"./${region}/${job_name}\"
+  """\
+    @Library("spacemesh") import static io.spacemesh.awsinfra.commons.*
+    pipeline {
+      agent any
+
+      stages {
+        stage("Run jobs") {
+          steps {
+            script {
+              parallel aws_regions.collectEntries {region-> [(region): {->
+                build job: "./\${region}/${job_name}"
+              }]}
+            }
+          }
         }
       }
-    """}).join("\n")
+    }
+  """.stripIndent()
 }
 
 def testnetCleanAllDSL(top_folder) {
-  def pipeline = """\
-  pipeline {
-    agent none
-    stages {
-      ${buildJobPerRegions("clean-initfactory-workers")}
-    }
-  }
-  """.stripIndent()
+  def pipeline = buildJobPerRegions("clean-initfactory-workers")
 
   """\
-  pipelineJob("${top_folder}/__cleanup-initfactory-workers") {
+  pipelineJob("${top_folder}/cleanup-initfactory-workers") {
+    previousNames("${top_folder}/__cleanup-initfactory-workers")
     description "Clean all the finished InitFactory workers in all regions"
+
+    triggers {
+      cron "H/15 * * * *"
+    }
+
     definition {
       cps {
         sandbox()
@@ -138,17 +148,11 @@ def testnetCleanAllDSL(top_folder) {
 }
 
 def testnetUnlockAllDSL(top_folder) {
-  def pipeline = """\
-  pipeline {
-    agent none
-    stages {
-      ${buildJobPerRegions("unlock-initdata")}
-    }
-  }
-  """.stripIndent()
+  def pipeline = buildJobPerRegions("unlock-initdata")
 
   """\
-  pipelineJob("${top_folder}/__unlock-initdata") {
+  pipelineJob("${top_folder}/unlock-initdata") {
+    previousNames("${top_folder}/__unlock-initdata")
     description "Unlock all the init data sets in all regions"
     definition {
       cps {
@@ -275,35 +279,37 @@ def spacemeshDSL() {
       }
 
       definition {
-        sandbox()
-        script '''
-          @Library("spacemesh") _
+        cps {
+          sandbox()
+          script '''
+            @Library("spacemesh") _
 
-          pipeline {
-             agent any
+            pipeline {
+               agent any
 
-             stages {
-                stage("Prepare") {
-                   steps {
-                      writeFile file: "inventory.py",
-                                text: libraryResource("scripts/get_dashboard_urls.py")
-                   }
-                }
-                
-                stage("Run") {
-                    steps {
-                        sh \"""python3 inventory.py > index.html\"""
-                    }
-                }
-                
-                stage("Archive") {
-                    steps {
-                        archiveArtifacts "index.html"
-                    }
-                }
-             }
-          }
-        '''.stripIndent()
+               stages {
+                  stage("Prepare") {
+                     steps {
+                        writeFile file: "inventory.py",
+                                  text: libraryResource("scripts/get_dashboard_urls.py")
+                     }
+                  }
+                  
+                  stage("Run") {
+                      steps {
+                          sh \"""python3 inventory.py > index.html\"""
+                      }
+                  }
+                  
+                  stage("Archive") {
+                      steps {
+                          archiveArtifacts "index.html"
+                      }
+                  }
+               }
+            }
+          '''.stripIndent()
+        }
       }
     }
   """.stripIndent()

@@ -258,6 +258,56 @@ def spacemeshDSL() {
     }
   """.stripIndent()
 
+  /* inventory-dashboards */
+  result += """\
+    pipelineJob("global/inventory-dashboards") {
+      description("Build a table with URLs of all the Kubernetes Dashboards")
+
+      logRotator {
+        artifactDaysToKeep(-1)
+        artifactNumToKeep(5)
+        daysToKeep(-1)
+        numToKeep(24)
+      }
+
+      triggers {
+        cron "H * * * *"
+      }
+
+      definition {
+        sandbox()
+        script '''
+          @Library("spacemesh@feature/k8s-dashboard") _
+
+          pipeline {
+             agent any
+
+             stages {
+                stage("Prepare") {
+                   steps {
+                      writeFile file: "inventory.py",
+                                text: libraryResource("scripts/get_dashboard_urls.py")
+                   }
+                }
+                
+                stage("Run") {
+                    steps {
+                        sh \"""python3 inventory.py > index.html\"""
+                    }
+                }
+                
+                stage("Archive") {
+                    steps {
+                        archiveArtifacts "index.html"
+                    }
+                }
+             }
+          }
+        '''.stripIndent()
+      }
+    }
+  """.stripIndent()
+
   /* Add TestNet folder and projects */
   result += testnetDSL()
 

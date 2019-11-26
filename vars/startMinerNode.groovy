@@ -166,8 +166,10 @@ def call(Map config) {
                           resources:
                             limits:
                               cpu: ${config.cpu_limit}
+                              memory: "2Gi"
                             requests:
                               cpu: ${config.cpu_requests ?: config.cpu_limit}
+                              memory: "2Gi"
                           volumeMounts:
                             - name: miner-storage
                               mountPath: /root

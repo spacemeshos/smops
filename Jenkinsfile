@@ -274,6 +274,26 @@ def spacemeshDSL() {
   folder("global") {
     displayName "Global"
     description "Jobs for all the regions"
+
+    properties {
+      folderLibraries {
+        libraries {
+          libraryConfiguration {
+            name("spacemesh")
+            retriever {
+              modernSCM {
+                scm {
+                  git {
+                    remote "${repo_url}"
+                  }
+                }
+              }
+            }
+            defaultVersion("master")
+          }
+        }
+      }
+    }
   }
   """.stripIndent()
 
@@ -343,6 +363,34 @@ def spacemeshDSL() {
                   }
                }
             }
+          '''.stripIndent()
+        }
+      }
+    }
+  """.stripIndent()
+
+  /* inventory-initdata */
+  result += """\
+    pipelineJob("global/inventory-initdata") {
+      description("Build a table with list of init data files in all regions")
+
+      logRotator {
+        artifactDaysToKeep(-1)
+        artifactNumToKeep(5)
+        daysToKeep(-1)
+        numToKeep(24)
+      }
+
+      triggers {
+        cron "H H * * *"
+      }
+
+      definition {
+        cps {
+          sandbox()
+          script '''
+            @Library("spacemesh") _
+            initfactoryInventory()
           '''.stripIndent()
         }
       }

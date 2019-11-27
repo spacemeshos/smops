@@ -137,7 +137,7 @@ def call(String aws_region) {
   }
 }
 
-def random_ports(int ctr, int low=61000, int high=65535) {
+def random_ports(int ctr, int low=62000, int high=65535) {
   def rnd = new Random()
   def rand_port = {-> (low + (high-low)*rnd.nextFloat()) as int }
 

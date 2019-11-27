@@ -77,7 +77,7 @@ resource "aws_security_group_rule" "eks-miner-tcp-nodeport" {
 
   type        = "ingress"
   protocol    = "tcp"
-  from_port   = 61000
+  from_port   = 62000
   to_port     = 65535
 
   cidr_blocks      = ["0.0.0.0/0"]
@@ -107,7 +107,7 @@ resource "aws_security_group_rule" "eks-miner-udp-nodeport" {
 
   type        = "ingress"
   protocol    = "udp"
-  from_port   = 61000
+  from_port   = 62000
   to_port     = 65535
 
   cidr_blocks      = ["0.0.0.0/0"]

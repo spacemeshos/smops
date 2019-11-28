@@ -32,7 +32,7 @@ provider "aws" {
 }
 
 resource "aws_vpc_peering_connection_accepter" "pcx" {
-  provider                  = "aws.peer"
+  provider                  = aws.peer
   vpc_peering_connection_id = aws_vpc_peering_connection.pcx.id
   auto_accept               = true
 
@@ -59,7 +59,7 @@ resource "aws_vpc_peering_connection_options" "pcx-options" {
     allow_vpc_to_remote_classic_link = false
   }
 
-  depends_on = ["aws_vpc_peering_connection_accepter.pcx"]
+  depends_on = [aws_vpc_peering_connection_accepter.pcx]
 }
 
 ### Local Routing tables rule
@@ -71,12 +71,12 @@ resource "aws_route" "local-pcx" {
   destination_cidr_block    = var.peer_vpc_cidr
   vpc_peering_connection_id = aws_vpc_peering_connection.pcx.id
 
-  depends_on = ["aws_vpc_peering_connection_accepter.pcx"]
+  depends_on = [aws_vpc_peering_connection_accepter.pcx]
 }
 
 ### Peer Routing tables rule
 resource "aws_route" "peer-pcx" {
-  provider = "aws.peer"
+  provider = aws.peer
 
   count = length(var.peer_route_tables)
 
@@ -85,7 +85,7 @@ resource "aws_route" "peer-pcx" {
   destination_cidr_block    = var.local_vpc_cidr
   vpc_peering_connection_id = aws_vpc_peering_connection.pcx.id
 
-  depends_on = ["aws_vpc_peering_connection_accepter.pcx"]
+  depends_on = [aws_vpc_peering_connection_accepter.pcx]
 }
 
 ### Outputs

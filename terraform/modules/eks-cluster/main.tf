@@ -42,7 +42,7 @@ provider "aws" {
 
 ### EKS Cluster
 resource "aws_eks_cluster" "eks" {
-  provider = "aws.admin"
+  provider = aws.admin
 
   name = var.name
 

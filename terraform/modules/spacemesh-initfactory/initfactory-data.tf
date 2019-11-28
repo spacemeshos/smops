@@ -73,7 +73,7 @@ resource "aws_dynamodb_table" "initdata" {
 
   # Recommended
   lifecycle {
-    ignore_changes = ["read_capacity", "write_capacity"]
+    ignore_changes = [read_capacity, write_capacity]
   }
 }
 

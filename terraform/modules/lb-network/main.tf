@@ -2,7 +2,7 @@
 variable "name" {}
 
 variable "vpc_id"   {}
-variable "subnets"  { type = "list" }
+variable "subnets"  { type = list }
 variable "internal" { default = false }
 
 variable "listen_port" { default = 80 }

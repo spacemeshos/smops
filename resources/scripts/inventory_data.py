@@ -6,6 +6,8 @@ try:
 except ImportError:
     import dummy_threading as threading
 
+from datetime import datetime
+
 from jinja2 import Template
 import botocore.session
 
@@ -30,28 +32,37 @@ def space_hr(space):
 def inventory_initdata(aws_region):
     """Scan DynamoDB table and return summary of data files there"""
     table_name = f"testnet-initdata.{aws_region}.spacemesh.io"
-    result = {}
+    items_total = {}
+    items_locked = {}
 
     dynamodb = botocore.session.get_session().create_client("dynamodb", region_name=aws_region)
     r = dynamodb.scan(TableName=table_name,
-                      ProjectionExpression="#space",
+                      ProjectionExpression="#space,locked",
                       ExpressionAttributeNames={"#space": "space"},
                       )
     while r["Count"] > 0:
         for item in r["Items"]:
             space = int(item["space"]["N"])
-            result[space] = result[space] + 1 if space in result else 1
+            if space in items_total:
+                items_total[space] += 1
+            else:
+                items_total[space] = 1
+                items_locked[space] = 0
+
+            if item["locked"]["N"] != "0":
+                items_locked[space] += 1
 
         if "LastEvaluatedKey" not in r:
             break
 
         r = dynamodb.scan(TableName=table_name,
-                          ProjectionExpression="#space",
+                          ProjectionExpression="#space,locked",
                           ExpressionAttributeNames={"#space": "space"},
                           ExclusiveStartKey=r["LastEvaluatedKey"],
                           )
 
-    return [(space, space_hr(space), result[space]) for space in sorted(result.keys())]
+    # Flatten the result
+    return [(space, space_hr(space), items_total[space], items_locked[space]) for space in sorted(items_total.keys())]
 
 
 def publish_inventory(data):
@@ -69,19 +80,23 @@ def publish_inventory(data):
   <body>
     <h1>InitFactory Inventory</h1>
     <table border="1">
+      <caption>InitFactory Data Files as of {{date}}</caption>
       <thead><tr>
         <th>Region</th>
         <th>Space</th>
-        <th>Number</th>
+        <th>Total</th>
+        <th>Locked</th>
       </tr></thead>
       <tbody>
       {%- for region,files in data|dictsort: %}
-        {%- for space,space_hr,ctr in files: %}
+        {%- for space,space_hr,total,locked in files: %}
         <tr>
           {%- if loop.first: %}
           <th rowspan="{{files|length}}">{{region}}</th>
           {%- endif %}
-          <td>{{space_hr}} ({{space}})</td><td>{{ctr}}</td>
+          <td>{{space_hr}} ({{space}})</td>
+          <td>{{total}}</td>
+          <td>{{locked}}</td>
         </tr>
         {%- endfor %}
       {%- endfor %}
@@ -89,7 +104,7 @@ def publish_inventory(data):
     </table>
   </body>
 </html>
-""").render(data=data))
+""").render(data=data, date=datetime.now().strftime("%d %b %Y %H:%M")))
 
 
 

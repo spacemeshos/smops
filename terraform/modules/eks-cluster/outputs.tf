@@ -5,7 +5,7 @@ output "node_userdata" {
   value = <<USERDATA
 #!/bin/bash
 set -o xtrace
-INSTANCE_ID=$(curl -s http://169.254.169.254/latest/meta-data/instance-id)
+chronyc waitsync
 /etc/eks/bootstrap.sh --apiserver-endpoint '${aws_eks_cluster.eks.endpoint}' --b64-cluster-ca '${aws_eks_cluster.eks.certificate_authority[0].data}' '${var.name}'
 USERDATA
 }

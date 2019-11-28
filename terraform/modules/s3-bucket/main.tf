@@ -2,17 +2,17 @@
 variable "bucket" {}
 variable "name" {}
 variable "location" {}
-variable "versioning" { default = "true" }
+variable "versioning" { default = true }
 variable "acl" { default = "private" }
 
 ### S3 Bucket
 resource "aws_s3_bucket" "bucket" {
-  bucket = "${var.bucket}"
-  region = "${var.location}"
-  acl    = "${var.acl}"
+  bucket = var.bucket
+  region = var.location
+  acl    = var.acl
 
   versioning {
-    enabled = "${var.versioning}"
+    enabled = var.versioning
   }
 
   # TODO: Add as a parameter
@@ -40,7 +40,7 @@ resource "aws_s3_bucket" "bucket" {
 
 # Ensure no public access is possible
 resource "aws_s3_bucket_public_access_block" "bucket" {
-  bucket = "${aws_s3_bucket.bucket.id}"
+  bucket = aws_s3_bucket.bucket.id
 
   block_public_acls       = true
   block_public_policy     = true
@@ -109,9 +109,9 @@ EOF
 }
 
 ### Outputs
-output "id" { value = "${aws_s3_bucket.bucket.id}" }
+output "id" { value = aws_s3_bucket.bucket.id }
 
-output "policy_readonly"   { value = "${aws_iam_policy.iam-s3-readonly.arn}" }
-output "policy_fullaccess" { value = "${aws_iam_policy.iam-s3-fullaccess.arn}" }
+output "policy_readonly"   { value = aws_iam_policy.iam-s3-readonly.arn }
+output "policy_fullaccess" { value = aws_iam_policy.iam-s3-fullaccess.arn }
 
 # vim: set filetype=terraform ts=2 sw=2 et:

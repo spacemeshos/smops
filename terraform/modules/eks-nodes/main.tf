@@ -22,23 +22,23 @@ POLICY
 # Attach default IAM policies
 resource "aws_iam_role_policy_attachment" "eks-cluster-node-AmazonEKSWorkerNodePolicy" {
   policy_arn = "arn:aws:iam::aws:policy/AmazonEKSWorkerNodePolicy"
-  role       = "${aws_iam_role.eks-cluster-node.name}"
+  role       = aws_iam_role.eks-cluster-node.name
 }
 resource "aws_iam_role_policy_attachment" "eks-cluster-node-AmazonEKS_CNI_Policy" {
   policy_arn = "arn:aws:iam::aws:policy/AmazonEKS_CNI_Policy"
-  role       = "${aws_iam_role.eks-cluster-node.name}"
+  role       = aws_iam_role.eks-cluster-node.name
 }
 
 # Allow nodes to pull images from Container Registry
 resource "aws_iam_role_policy_attachment" "eks-cluster-node-AmazonEC2ContainerRegistryReadOnly" {
   policy_arn = "arn:aws:iam::aws:policy/AmazonEC2ContainerRegistryReadOnly"
-  role       = "${aws_iam_role.eks-cluster-node.name}"
+  role       = aws_iam_role.eks-cluster-node.name
 }
 
 ### IAM Instance Profile for EKS worker nodes
 resource "aws_iam_instance_profile" "eks-cluster-node" {
   name = "${var.basename}-node"
-  role = "${aws_iam_role.eks-cluster-node.name}"
+  role = aws_iam_role.eks-cluster-node.name
 }
 
 ### EKS Node Launch Template

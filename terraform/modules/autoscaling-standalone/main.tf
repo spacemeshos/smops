@@ -5,7 +5,7 @@ variable "size"     { default = 0 }
 variable "max_size" { default = 1 }
 variable "tpl_id" {}
 variable "vpc_id" {}
-variable "subnets" { type = "list" }
+variable "subnets" { type = list }
 variable "placement_strategy" { default = "" }
 variable "extra_tags" {
   default = {}
@@ -38,7 +38,7 @@ resource "aws_autoscaling_group" "asg" {
 
   # Allow adjust group size outside of Terraform
   lifecycle {
-    ignore_changes = ["desired_capacity" , "vpc_zone_identifier"]
+    ignore_changes = [desired_capacity, vpc_zone_identifier]
   }
 
   # Add extra tags if instructed

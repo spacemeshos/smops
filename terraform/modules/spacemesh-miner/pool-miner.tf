@@ -114,6 +114,21 @@ resource "aws_security_group_rule" "eks-miner-udp-nodeport" {
   ipv6_cidr_blocks = ["::/0"]
 }
 
+# ICMP (for network diagnositcs)
+resource "aws_security_group_rule" "eks-miner-icmp" {
+  security_group_id = module.eks-miner.node_sg
+
+  description = "Allow ICMP"
+
+  type        = "ingress"
+  protocol    = "icmp"
+  from_port   = -1
+  to_port     = -1
+
+  cidr_blocks      = ["0.0.0.0/0"]
+  ipv6_cidr_blocks = ["::/0"]
+}
+
 ### Miner Nodes: IAM Policies
 # Allow miners to update DynamoDB
 resource "aws_iam_role_policy_attachment" "miner-dynamodb-readwrite" {

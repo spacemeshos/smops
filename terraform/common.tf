@@ -14,6 +14,8 @@ variable "mgmt_bastion_instance_type" { default = "t2.small" }
 variable "aws_region"  { type = string }
 variable "aws_account" { type = number }
 
+variable "aws_region_list" { type = list }
+
 variable "project_env"    { type = string }
 variable "project_name"   { type = string }
 variable "project_domain" { type = string }

@@ -3,6 +3,14 @@ project_name   = "spacemesh"
 project_domain = "spacemesh.io"
 aws_account    = 534354616613
 
+aws_region_list = [
+  "ap-northeast-2",
+  "eu-north-1",
+  "us-east-1",
+  "us-east-2",
+  "us-west-2",
+]
+
 # Access params
 ssh_admin_key   = "spacemesh"
 ssh_bastion_key = "spacemesh"

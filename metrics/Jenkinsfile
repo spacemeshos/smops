@@ -1,0 +1,44 @@
+//docker_image = "spacemeshos/spacemeshos-metrics:latest"
+docker_image = "jmacloueait/spacemeshos-metrics:latest"
+docker_creds = "dockerhub_jmcl"
+
+/*
+  PIPELINE
+ */
+pipeline {
+  agent any
+
+  options {
+    buildDiscarder(logRotator(numToKeepStr: '10')) // Keep last 10 builds only
+  }
+
+  stages {
+    stage("Checkout") {
+      steps {
+        checkout scm
+      }
+    }
+
+    stage("Build") {
+      steps {
+        dir("metrics") {
+          script {
+            image = docker.build(docker_image)
+          }
+        }
+      }
+    }
+
+    stage("Push") {
+      steps {
+        script {
+          docker.withRegistry("", docker_creds) {
+            image.push()
+          }
+        }
+      }
+    }
+  }
+}
+
+/* vim: set filetype=groovy ts=2 sw=2 et : */

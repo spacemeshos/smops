@@ -317,6 +317,16 @@ def spacemeshDSL() {
     }
   """.stripIndent()
 
+  /* build-metrics-image pipeline */
+  result += """\
+    pipelineJob("global/build-metrics-image") {
+      description("Bulds an image for metrics scraper")
+      definition {
+        ${scmDSL("metrics/Jenkinsfile.build")}
+      }
+    }
+  """.stripIndent()
+
   /* inventory-dashboards */
   result += """\
     pipelineJob("global/inventory-dashboards") {

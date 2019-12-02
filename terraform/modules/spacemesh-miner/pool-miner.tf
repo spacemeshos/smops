@@ -12,7 +12,7 @@ module "eks-miner" {
   aws_region         = var.aws_region
   vpc_id             = module.miner-vpc.id
   subnets            = module.miner-vpc.public_subnets
-  placement_strategy = "cluster"
+  #placement_strategy = "cluster"
 
   # Miners should have external IP available
   assign_public_ip = true

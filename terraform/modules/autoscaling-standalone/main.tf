@@ -36,6 +36,9 @@ resource "aws_autoscaling_group" "asg" {
   # (optionally) Attach Placement Group
   placement_group = var.placement_strategy == "" ? "" : aws_placement_group.asg-placement[0].name
 
+  # Suspend AZRebalance
+  suspended_processes = [ "AZRebalance" ]
+
   # Allow adjust group size outside of Terraform
   lifecycle {
     ignore_changes = [desired_capacity, vpc_zone_identifier]

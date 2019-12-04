@@ -31,6 +31,8 @@ locals {
   mgmt_ops_rt = data.terraform_remote_state.mgmt.outputs.mgmt_pvt_rt
   mgmt_pub_rt = data.terraform_remote_state.mgmt.outputs.mgmt_pub_rt
 
+  mgmt_logs_bucket = data.terraform_remote_state.mgmt.outputs.cloudtrail_bucket
+
   initdata_dynamodb_readwrite = data.terraform_remote_state.initfactory.outputs.initdata-dynamodb.policy_readwrite
   initdata_s3_readonly        = data.terraform_remote_state.initfactory.outputs.initdata-s3.policy_readonly
 }

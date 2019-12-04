@@ -14,6 +14,15 @@ module "miner-vpc" {
   }
 }
 
+### Miner VPC Flow Log
+resource "aws_flow_log" "main" {
+  vpc_id       = module.miner-vpc.id
+  traffic_type = "ALL"
+
+  log_destination_type = "s3"
+  log_destination = "arn:aws:s3:::${local.mgmt_logs_bucket}"
+}
+
 ### Miner VPC Private route table
 resource "aws_route_table" "miner-private" {
   vpc_id = module.miner-vpc.id
@@ -78,6 +87,7 @@ module "private-subnets" {
 }
 
 ### Outputs
-output "miner_vpc" { value = module.miner-vpc.id } 
+output "miner_vpc"         { value = module.miner-vpc.id }
+output "miner_vpc_flowlog" { value = aws_flow_log.main.id }
 
 # vim:filetype=terraform ts=2 sw=2 et:

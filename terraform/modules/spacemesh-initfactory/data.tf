@@ -20,6 +20,8 @@ locals {
 
   mgmt_ops_rt = data.terraform_remote_state.mgmt.outputs.mgmt_pvt_rt
   mgmt_pub_rt = data.terraform_remote_state.mgmt.outputs.mgmt_pub_rt
+
+  mgmt_logs_bucket = data.terraform_remote_state.mgmt.outputs.cloudtrail_bucket
 }
 
 # vim:filetype=terraform ts=2 sw=2 et:

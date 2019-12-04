@@ -12,6 +12,15 @@ module "mgmt-vpc" {
   }
 }
 
+### MGMT VPC Flow Log
+resource "aws_flow_log" "main" {
+  vpc_id       = module.mgmt-vpc.id
+  traffic_type = "ALL"
+
+  log_destination_type = "s3"
+  log_destination = "arn:aws:s3:::${module.cloudtrail.bucket}"
+}
+
 ### DevOPS Subnets
 module "devops-subnets" {
   source = "../../../modules/vpc-subnets/"
@@ -49,8 +58,9 @@ module "poet-subnets" {
 }
 
 ### Outputs
-output "mgmt_vpc_id" { value = module.mgmt-vpc.id }
-output "mgmt_pub_rt" { value = module.mgmt-vpc.public_rt }
-output "mgmt_pvt_rt" { value = module.mgmt-vpc.private_rt }
+output "mgmt_vpc_id"      { value = module.mgmt-vpc.id }
+output "mgmt_vpc_flowlog" { value = aws_flow_log.main.id }
+output "mgmt_pub_rt"      { value = module.mgmt-vpc.public_rt }
+output "mgmt_pvt_rt"      { value = module.mgmt-vpc.private_rt }
 
 # vim:filetype=terraform ts=2 sw=2 et:

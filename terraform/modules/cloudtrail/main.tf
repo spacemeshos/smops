@@ -41,6 +41,13 @@ resource "aws_s3_bucket_policy" "logs-bucket" {
     },
     {
       "Effect": "Allow",
+      "Action": "s3:PutObject",
+      "Principal": {"Service": "cloudtrail.amazonaws.com"},
+      "Resource": "arn:aws:s3:::${local.bucket}/AWSLogs/*",
+      "Condition": {"StringEquals": {"s3:x-amz-acl": "bucket-owner-full-control"}}
+    },
+    {
+      "Effect": "Allow",
       "Action": ["s3:GetBucketAcl", "s3:GetBucketLocation"],
       "Principal": {"Service": "guardduty.amazonaws.com"},
       "Resource": "arn:aws:s3:::${local.bucket}"
@@ -54,10 +61,15 @@ resource "aws_s3_bucket_policy" "logs-bucket" {
     },
     {
       "Effect": "Allow",
+      "Action": "s3:GetBucketAcl",
+      "Principal": {"Service": "delivery.logs.amazonaws.com"},
+      "Resource": "arn:aws:s3:::${local.bucket}"
+    },
+    {
+      "Effect": "Allow",
       "Action": "s3:PutObject",
-      "Principal": {"Service": "cloudtrail.amazonaws.com"},
-      "Resource": "arn:aws:s3:::${local.bucket}/AWSLogs/*",
-      "Condition": {"StringEquals": {"s3:x-amz-acl": "bucket-owner-full-control"}}
+      "Principal": {"Service": "delivery.logs.amazonaws.com"},
+      "Resource": "arn:aws:s3:::${local.bucket}/AWSFlow/*"
     }
   ]
 }

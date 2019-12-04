@@ -12,6 +12,15 @@ module "initfactory-vpc" {
   }
 }
 
+### InitFactory VPC Flow Log
+resource "aws_flow_log" "main" {
+  vpc_id       = module.initfactory-vpc.id
+  traffic_type = "ALL"
+
+  log_destination_type = "s3"
+  log_destination = "arn:aws:s3:::${local.mgmt_logs_bucket}"
+}
+
 ### InitFactory VPC Private route table
 resource "aws_route_table" "initfactory-private" {
   vpc_id = module.initfactory-vpc.id
@@ -99,6 +108,7 @@ module "initfactory-subnets" {
 }
 
 ### Outputs
-output "initfactory_vpc" { value = module.initfactory-vpc.id } 
+output "initfactory_vpc"         { value = module.initfactory-vpc.id }
+output "initfactory_vpc_flowlog" { value = aws_flow_log.main.id }
 
 # vim:filetype=terraform ts=2 sw=2 et:

@@ -1,9 +1,13 @@
 ### Variables
-variable "bucket" {}
-variable "name" {}
-variable "location" {}
+variable "bucket"   { type = string}
+variable "name"     { type = string }
+variable "location" { type = string }
+
 variable "versioning" { default = true }
-variable "acl" { default = "private" }
+variable "acl"        { default = "private" }
+
+variable "versions_ttl" { default = 7 }
+variable "objects_ttl"  { default = 0 }
 
 ### S3 Bucket
 resource "aws_s3_bucket" "bucket" {
@@ -15,15 +19,31 @@ resource "aws_s3_bucket" "bucket" {
     enabled = var.versioning
   }
 
-  # TODO: Add as a parameter
-  lifecycle_rule {
-    id      = "expire-old-versions"
-    enabled = true
+  # Versions lifecycle
+  dynamic "lifecycle_rule" {
+    for_each = var.versions_ttl > 0 ? [var.versions_ttl] : []
+    content {
+      id      = "expire-old-versions"
+      enabled = true
 
-    abort_incomplete_multipart_upload_days = 1
+      abort_incomplete_multipart_upload_days = 1
 
-    noncurrent_version_expiration {
-      days = 7
+      noncurrent_version_expiration {
+        days = lifecycle_rule.value
+      }
+    }
+  }
+
+  # Objects lifecycle
+  dynamic "lifecycle_rule" {
+    for_each = var.objects_ttl > 0 ? [var.objects_ttl] : []
+    content {
+      id      = "expire-old-objects"
+      enabled = true
+
+      expiration {
+        days = lifecycle_rule.value
+      }
     }
   }
 

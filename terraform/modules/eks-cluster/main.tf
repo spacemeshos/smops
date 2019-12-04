@@ -35,9 +35,12 @@ resource "aws_security_group_rule" "eks-egress" {
 
 ### Provider to create the EKS
 provider "aws" {
-  alias = "admin"
+  alias  = "admin"
   region = var.aws_region
+
   assume_role { role_arn = var.admin_role }
+
+  skip_region_validation = true # Required for "terraform import" to work
 }
 
 ### EKS Cluster

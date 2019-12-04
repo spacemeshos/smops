@@ -29,6 +29,8 @@ resource "aws_vpc_peering_connection" "pcx" {
 provider "aws" {
   alias  = "peer"
   region = var.peer_region
+
+  skip_region_validation = true # Required for "terraform import" to work
 }
 
 resource "aws_vpc_peering_connection_accepter" "pcx" {

@@ -25,6 +25,9 @@ source ../_config.inc.sh
 # Load aws-auth ConfigMap template
 source ./_aws-auth-configmap.tpl.sh
 
+# Load spacemesh ConfigMap template
+source ./_spacemesh-configmap.tpl.sh
+
 # Update a single cluster config
 update_cluster_config() {
   local cluster=$1
@@ -49,12 +52,17 @@ update_cluster_config() {
   echo "Installing/updating helm: ServiceAccount"
   $kubectl apply -f tiller.yml
   echo "Installing/updating helm: tiller"
-  helm --kube-context=$context init --service-account tiller --upgrade
+  helm --kube-context=$context init --service-account tiller --upgrade --force-upgrade
   echo "Installing/updating helm: waiting for tiller to start"
   # Pod to be scheduled
   $kubectl wait deploy/tiller-deploy --for=condition=Available -n kube-system
   # Pod to become ready
   $kubectl wait pod -l app=helm --for condition=Ready -n kube-system --timeout=600s
+
+  if [ "$cluster" != "mgmt" ] ; then
+    echo "Installing/updating ConfigMap/spacemesh-${cluster}"
+    get_spacemesh_configmap_manifest $cluster $region | $kubectl apply -f -
+  fi
 }
 
 if [ $# -eq 0 ] ; then
@@ -68,7 +76,7 @@ else
   elif [ $# -gt 0 ] ; then
     REGIONS=$@
   fi
-  echo "Working on $CLUSTERS cluster in $REGIONS"
+  echo "Working on $CLUSTERS cluster(s) in $REGIONS"
 fi
 
 for c_type in $CLUSTERS ; do

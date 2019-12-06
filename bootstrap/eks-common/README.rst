@@ -3,11 +3,14 @@ GENERAL EKS CLUSTER BOOTSTRAP
 =============================
 
 This directory contains files related to general EKS Cluster bootstrap procedure. Script
-``update-cluster-config.sh`` is used to apply configuration.
+``update-cluster-config.sh`` is used to apply configuration. Script ``update-spacemesh-config.sh``
+updates just cluster-specific ConfigMaps - ``spacemesh-miner`` for Miner clusters and
+``spacemesh-initfactory`` for InitFactory ones.
 
 
-Items
-=====
+
+Components
+==========
 
 The following items are created in the cluster.
 
@@ -45,9 +48,8 @@ The manifests are identical to ones available in `metrics-server v0.3.4`_ distri
 stored in this repository for simplicity and ease of applying them to all the clusters.
 
 
-
 Helm
-====
+----
 
 The script also installs Helm's Tiller and ensures it is running - which may be required to
 automate new cluster bootstrap procedure.
@@ -56,6 +58,21 @@ To enable Tiller's operation, a ServiceAccount with ``cluster-admin`` privileges
 the manifest in ``tiller.yml``.
 
 Current installation uses `Helm version 2.13.1`_.
+
+
+
+Cluster-specific ConfigMap
+==========================
+
+Similar (but not identical) ConfigMaps are used to keep configuration items relevant to
+InitFactory and Miner workloads. Management cluster currently does not have an equivalent as no
+similar workloads run there.
+
+The manifests for this ConfigMaps are generated from template in ``_spacemesh-configmap.tpl.sh``
+similar to ``aws-auth`` ConfigMap generation.
+
+As a shortcut a separate script can be used to update cluster-specific ConfigMaps.
+
 
 
 .. _Amazon EKS Documentation: https://docs.aws.amazon.com/eks/latest/userguide/add-user-role.html

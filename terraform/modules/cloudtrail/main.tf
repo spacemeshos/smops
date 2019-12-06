@@ -34,12 +34,14 @@ resource "aws_s3_bucket_policy" "logs-bucket" {
   "Version": "2012-10-17",
   "Statement": [
     {
+      "Sid": "1",
       "Effect": "Allow",
       "Action": "s3:GetBucketAcl",
       "Principal": {"Service": "cloudtrail.amazonaws.com"},
       "Resource": "arn:aws:s3:::${local.bucket}"
     },
     {
+      "Sid": "2",
       "Effect": "Allow",
       "Action": "s3:PutObject",
       "Principal": {"Service": "cloudtrail.amazonaws.com"},
@@ -47,12 +49,14 @@ resource "aws_s3_bucket_policy" "logs-bucket" {
       "Condition": {"StringEquals": {"s3:x-amz-acl": "bucket-owner-full-control"}}
     },
     {
+      "Sid": "3",
       "Effect": "Allow",
       "Action": ["s3:GetBucketAcl", "s3:GetBucketLocation"],
       "Principal": {"Service": "guardduty.amazonaws.com"},
       "Resource": "arn:aws:s3:::${local.bucket}"
     },
     {
+      "Sid": "4",
       "Effect": "Allow",
       "Action": "s3:PutObject",
       "Principal": {"Service": "guardduty.amazonaws.com"},
@@ -60,12 +64,14 @@ resource "aws_s3_bucket_policy" "logs-bucket" {
       "Condition": {"StringEquals": {"s3:x-amz-server-side-encryption": "aws:kms"}}
     },
     {
+      "Sid": "5",
       "Effect": "Allow",
       "Action": "s3:GetBucketAcl",
       "Principal": {"Service": "delivery.logs.amazonaws.com"},
       "Resource": "arn:aws:s3:::${local.bucket}"
     },
     {
+      "Sid": "6",
       "Effect": "Allow",
       "Action": "s3:PutObject",
       "Principal": {"Service": "delivery.logs.amazonaws.com"},

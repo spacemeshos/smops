@@ -10,6 +10,10 @@ tolerations:
     value: master
     effect: NoSchedule
 
+# Skip logs from fluent-bit - it's noisy and costs too much to process
+podAnnotations:
+  fluentbit.io/exclude: "true"
+
 service:
   type: NodePort
   nodePort: 30909

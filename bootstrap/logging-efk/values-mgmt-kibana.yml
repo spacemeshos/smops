@@ -10,9 +10,6 @@ tolerations:
 nodeSelector:
   pool: logging
 
-podAnnotations:
-  fluentbit.io/exclude: "true"
-
 service:
   type: NodePort
   nodePort: 31500

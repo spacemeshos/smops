@@ -16,15 +16,19 @@ get_values() {
   case "$CLUSTER" in
       miner)
           LOGPATH='/var/log/containers/miner-*.log'
+          POOL="miner"
           ;;
       initfactory)
           LOGPATH='/var/log/containers/initfactory-*.log'
+          POOL="initfactory"
           ;;
       mgmt)
           LOGPATH='/var/log/containers/poet-*.log'
+          POOL="poet"
           ;;
       *)
           LOGPATH='/var/log/containers/*.log'
+          POOL=""
           ;;
   esac
 
@@ -34,9 +38,6 @@ backend:
   forward:
     host: $FORWARD_HOST
     port: $FORWARD_PORT
-
-podAnnotations:
-  fluentbit.io/exclude: "true"
 
 input:
   tail:
@@ -64,18 +65,18 @@ rawConfig: |
         Name record_modifier
         Match *
         Record spacemesh_cluster ${CLUSTER}-${REGION}
-
-tolerations:
 EOF
 
-  for P in ${POOLS[$CLUSTER]}; do
-      cat <<EOF
+[ -n "$POOL" ] && cat <<EOF
+tolerations:
 - key: dedicated
   operator: Equal
-  value: $P
+  value: $POOL
   effect: NoSchedule
+nodeSelector:
+  pool: $POOL
 EOF
-  done
+
 }
 
 # vim: ts=2 sw=2 et ai:

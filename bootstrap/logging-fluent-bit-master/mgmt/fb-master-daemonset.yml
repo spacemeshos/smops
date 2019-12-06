@@ -1,0 +1,67 @@
+---
+apiVersion: apps/v1
+kind: DaemonSet
+metadata:
+  namespace: logging
+  name: fluent-bit-master
+  labels:
+    app: fluent-bit-master
+spec:
+  selector:
+    matchLabels:
+      app: fluent-bit-master
+  template:
+    metadata:
+      labels:
+        app: fluent-bit-master
+    spec:
+      tolerations:
+        - effect: NoSchedule
+          key: dedicated
+          value: master
+          operator: Equal
+        - effect: NoSchedule
+          key: dedicated
+          value: logging
+          operator: Equal
+
+      serviceAccountName: fluent-bit
+
+      volumes:
+      - configMap:
+          defaultMode: 420
+          name: fluent-bit-master
+        name: fb-config
+      - hostPath:
+          path: /var/log
+        name: host-logs
+      - hostPath:
+          path: /var/lib/docker/containers
+        name: host-docker
+
+      containers:
+        - name: default
+          image: amazon/aws-for-fluent-bit:2.0.0
+          env:
+            - name: SPACEMESH_CLUSTER
+              valueFrom:
+                configMapKeyRef:
+                  name: fluent-bit-master
+                  key:  spacemesh_cluster
+            - name: AWS_REGION
+              valueFrom:
+                configMapKeyRef:
+                  name: fluent-bit-master
+                  key:  aws_region
+
+          volumeMounts:
+            - mountPath: /fluent-bit/etc/fluent-bit.conf
+              name: fb-config
+              subPath: fluent-bit.conf
+            - mountPath: /var/log
+              name: host-logs
+            - mountPath: /var/lib/docker/containers
+              name: host-docker
+              readOnly: true
+
+# vim:ts=2 sw=2 et:

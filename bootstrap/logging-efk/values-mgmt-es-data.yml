@@ -29,9 +29,6 @@ service:
 nodeSelector:
   pool: logging
 
-podAnnotations:
-  fluentbit.io/exclude: "true"
-
 esJavaOpts: "-Xms32g -Xmx32g"
 
 resources:

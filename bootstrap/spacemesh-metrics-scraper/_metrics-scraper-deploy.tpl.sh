@@ -1,20 +1,14 @@
 #!/bin/bash
 
-REGION=$1
-CLUSTER=$2
-IMAGE=534354616613.dkr.ecr.us-east-1.amazonaws.com/spacemesh-testnet-metrics-scraper:latest
+get_metrics_scraper_deploy_manifest() {
+  local cluster=$1
+  local region=$2
 
-if [ -z "$REGION" -o -z "$CLUSTER" ] ; then
-    echo "Usage: $0 REGION mgmt|initfactory|miner"
-    exit 1
-fi
+  # FIXME: Move to Docker Hub
+  local IMAGE=534354616613.dkr.ecr.us-east-1.amazonaws.com/spacemesh-testnet-metrics-scraper:latest
 
-CTX="$CLUSTER-$REGION"
-echo "Updating metrics scraper in $CTX"
-
-kubectl --context=$CTX apply -f ./common/spacemesh-metrics-scraper.yml
-
-cat <<EOF | kubectl --context=$CTX apply -f -
+  # Output header and common content
+  cat <<EOF
 ---
 apiVersion: apps/v1
 kind: Deployment
@@ -41,10 +35,12 @@ spec:
       - name: default
         env:
         - name: SPACEMESH_SCRAPE_TYPE
-          value: $CLUSTER
+          value: $cluster
         - name: SPACEMESH_SCRAPE_REGION
-          value: $REGION
+          value: $region
         image: $IMAGE
 EOF
 
-# vim:set ts=4 sw=4 ai et:
+}
+
+# vim:set ts=2 sw=2 ai et:

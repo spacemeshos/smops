@@ -17,7 +17,7 @@ The directory layout is as follows.
   This subdirectory contains scripts, Kubernetes manifests and Helm values files for applications
   deployed at the clusters
 
-``metrics``
+``metrics-scraper``
   This subdirectory contains code related to custom metrics scraper script
 
 ``initfactory``

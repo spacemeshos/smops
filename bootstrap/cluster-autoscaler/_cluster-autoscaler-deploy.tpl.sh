@@ -1,9 +1,9 @@
 #!/bin/bash
 
-CLUSTER=$1
-VERSION=1.13.6
-
-cat <<EOF
+get_deployment_manifest() {
+  local VERSION=1.13.8
+  local CLUSTER=$1
+  cat <<EOF
 ---
 apiVersion: apps/v1
 kind: Deployment
@@ -54,4 +54,6 @@ spec:
             path: "/etc/ssl/certs/ca-bundle.crt"
 EOF
 
-# vim:set ts=4 sw=4 ai et:
+}
+
+# vim:set ts=2 sw=2 ai et:

@@ -5,30 +5,30 @@ CHART_NAME=stable/fluent-bit
 CHART_VERSION=2.7.0
 CHART_VALUES=-
 
-FORWARD_HOST="spacemesh-testnet-mgmt-fb-fwd-lb-8e14e7d176466555.elb.us-east-1.amazonaws.com"
-FORWARD_PORT=24224
 
 get_values() {
-  CLUSTER=$1
-  REGION=$2
+  local cluster=$1
+  local region=$2
+
+  local logpath pool
 
   # Add input file selection
-  case "$CLUSTER" in
+  case "$cluster" in
       miner)
-          LOGPATH='/var/log/containers/miner-*.log'
-          POOL="miner"
+          logpath='/var/log/containers/miner-*.log'
+          pool="miner"
           ;;
       initfactory)
-          LOGPATH='/var/log/containers/initfactory-*.log'
-          POOL="initfactory"
+          logpath='/var/log/containers/initfactory-*.log'
+          pool="initfactory"
           ;;
       mgmt)
-          LOGPATH='/var/log/containers/poet-*.log'
-          POOL="poet"
+          logpath='/var/log/containers/poet-*.log'
+          pool="poet"
           ;;
       *)
-          LOGPATH='/var/log/containers/*.log'
-          POOL=""
+          logpath='/var/log/containers/*.log'
+          pool=""
           ;;
   esac
 
@@ -36,12 +36,12 @@ get_values() {
 backend:
   type: forward
   forward:
-    host: $FORWARD_HOST
-    port: $FORWARD_PORT
+    host: $FB_FORWARD_HOST
+    port: $FB_FORWARD_PORT
 
 input:
   tail:
-    path: $LOGPATH
+    path: $logpath
 parsers:
   enabled: yes
   regex:
@@ -64,17 +64,17 @@ rawConfig: |
     [FILTER]
         Name record_modifier
         Match *
-        Record spacemesh_cluster ${CLUSTER}-${REGION}
+        Record spacemesh_cluster ${cluster}-${region}
 EOF
 
-[ -n "$POOL" ] && cat <<EOF
+[ -n "$pool" ] && cat <<EOF
 tolerations:
 - key: dedicated
   operator: Equal
-  value: $POOL
+  value: $pool
   effect: NoSchedule
 nodeSelector:
-  pool: $POOL
+  pool: $pool
 EOF
 
 }

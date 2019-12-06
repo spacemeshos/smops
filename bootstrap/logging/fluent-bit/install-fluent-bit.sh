@@ -7,7 +7,7 @@ set -e
 cd $(dirname $0)
 
 # Load global configuration
-source ../_config.inc.sh
+source ../../_config.inc.sh
 
 # Load chart parameters
 source _chart.inc.sh

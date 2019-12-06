@@ -7,7 +7,7 @@ set -e
 cd $(dirname $0)
 
 # Load global configuration
-source ../_config.inc.sh
+source ../../_config.inc.sh
 
 # Load ConfigMap template
 source ./_fb-master-config.tpl.sh

@@ -35,8 +35,8 @@ Details
 
 Fluent Bit is installed using standard Helm chart, ``stable/fluent-bit``.
 
-The wrapper scripts source ``../_config.inc.sh`` and ``./_chart.inc.sh`` configuration snippets,
-containing TestNet-wide and application-specific configuration parameters.
+The wrapper scripts source ``../../_config.inc.sh`` and ``./_chart.inc.sh`` configuration
+snippets, containing TestNet-wide and application-specific configuration parameters.
 
 A field that specifies the cluster from which the log message originates is added by
 ``record_modifier`` filter. As standard Helm chart does not support custom filters of that kind -

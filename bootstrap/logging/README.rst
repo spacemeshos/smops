@@ -19,7 +19,7 @@ Elasticsearch cluster is deployed to MGMT EKS Cluster and runs on 4 dedicated R-
 There are two master and two data nodes configured, with 500GiB storage each to accommodate the
 log messages.
 
-To increase indexing speed some settings are tweaked (see ``es_settings.sh`` for details).
+To increase indexing speed some settings are tweaked (see ``./efk/es_settings.sh`` for details).
 
 Though deployed by using the official Elastic Helm charts, some things are changed by hand to
 improve the performance and manageability.
@@ -33,7 +33,11 @@ Elasticsearch for simplicity.
 The load balancer is accessible only from the internal network so VPN connection is required to
 use it.
 
-For buffering Fluent Bit deployment details, see ``fluent-bit-forwarder`` subdirectory.
+For buffering Fluent Bit deployment details, see ``fluent-bit-forwarder`` subdirectory. For
+per-worker-node Fluent Bit configuration, see ``fluent-bit`` subdirectory.
+
+Master nodes of all clusters and ``logging`` pool nodes of management cluster run Fluent Bit which
+ships the logs to Amazon CloudWatch Logs. See ``fluent-bit-master`` subdirectory for details.
 
 
 Initial install
@@ -71,8 +75,8 @@ Updating configuration
 
 Helm deployments can be modified as follows::
 
-    helm upgrade logs-master elastic/elasticsearch --version 7.3.0 -f ./values-mgmt-es.yml
-    helm upgrade logs-data elastic/elasticsearch --version 7.3.0 -f ./values-mgmt-es-data.yml
+    helm upgrade logs-master elastic/elasticsearch --version 7.3.0 -f ./efk/values-mgmt-es.yml
+    helm upgrade logs-data elastic/elasticsearch --version 7.3.0 -f ./efk/values-mgmt-es-data.yml
 
 However it may fail because Elasticsearch startup is quite long, and pods may fail readiness
 probes and get restarted. Also master election process is unreliable and often needs attention. So
@@ -83,7 +87,7 @@ failure or Elasticsearch downtime.
 
 Kibana does not require any special treatment and can be upgraded as follows::
 
-    helm upgrade kibana elastic/kibana --version 7.3.0 -f ./values-mgmt-kibana.yml
+    helm upgrade kibana elastic/kibana --version 7.3.0 -f ./efk/values-mgmt-kibana.yml
 
 
 Elasticsearch settings

@@ -1,11 +1,12 @@
 #!/bin/sh
 
-ES_HOST=http://internal-spacemesh-testnet-mgmt-es-116988061.us-east-1.elb.amazonaws.com:9200
+# Load common configuration
+source $(dirname $0)/../../_config.inc.sh
 
 curl="curl -sS -H content-type:application/json"
 
 echo "Creating ingest_timestamp_pipeline"
-$curl -XPUT $ES_HOST"/_ingest/pipeline/ingest_timestamp_pipeline?pretty" -d \
+$curl -XPUT $LOGS_ES_HOST"/_ingest/pipeline/ingest_timestamp_pipeline?pretty" -d \
 '{
   "description": "Adds a field to a document with the time of ingestion",
   "processors": [
@@ -19,7 +20,7 @@ $curl -XPUT $ES_HOST"/_ingest/pipeline/ingest_timestamp_pipeline?pretty" -d \
 }'
 
 echo "Creating index_delete lifecycle policy"
-$curl -XPUT $ES_HOST"/_ilm/policy/index_delete?pretty" -d \
+$curl -XPUT $LOGS_ES_HOST"/_ilm/policy/index_delete?pretty" -d \
 '{
   "policy": {
     "phases": {
@@ -44,7 +45,7 @@ $curl -XPUT $ES_HOST"/_ilm/policy/index_delete?pretty" -d \
 }'
 
 echo "Creating kubernetes_cluster_template"
-$curl -XPUT $ES_HOST"/_template/kubernetes_cluster_template?pretty" -d \
+$curl -XPUT $LOGS_ES_HOST"/_template/kubernetes_cluster_template?pretty" -d \
 '{
   "index_patterns": ["kubernetes_cluster-*"],
   "settings": {
@@ -63,7 +64,7 @@ $curl -XPUT $ES_HOST"/_template/kubernetes_cluster_template?pretty" -d \
 }'
 
 echo "Adjusting global settings"
-$curl -XPUT $ES_HOST"/_settings?pretty" -d \
+$curl -XPUT $LOGS_ES_HOST"/_settings?pretty" -d \
 '{
   "index.translog.durability": "async",
   "index.blocks.read_only_allow_delete": null

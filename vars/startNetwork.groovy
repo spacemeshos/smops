@@ -208,7 +208,19 @@ def call(String aws_region) {
 
       stage("Archive artifacts") {
         steps {
-          archiveArtifacts "poet-deploy.yml, miner-*-bootstrap-svc.yml, miner-*-bootstrap-deploy.yml"
+          script {
+            /* Save build parameters as JSON */
+            def params = [
+              pool_id: pool_id,
+              bootnodes: bootnode.netaddr,
+              miner_image: params.MINER_IMAGE,
+              spacemesh_space: SPACEMESH_SPACE as String,
+              spacemesh_vol_size: vol_size as String,
+              extra_params: extra_params.join(" "),
+            ]
+            writeFile file: "params.json", text: groovy.json.JsonOutput.toJson(params)
+          }
+          archiveArtifacts "poet-deploy.yml, miner-*-bootstrap-svc.yml, miner-*-bootstrap-deploy.yml, params.json"
         }
       }
     }

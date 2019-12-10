@@ -96,7 +96,9 @@ def topFolderDSL(name, desc="", display_name="") {
         jobs {
           name "unlock-initdata"
           name "start-miners"
+          name "add-miners"
           name "stop-miners"
+          name "remove-miners"
           name "start-initfactory"
           name "cleanup-initfactory-workers"
         }
@@ -226,9 +228,19 @@ def testnetDSL() {
       "Run Miners in the region",
     )
     result += simpleJobDSL(
+      "${top_folder}/${region}/add-miners",
+      "addMiners(\"${region}\")",
+      "Add Miners to the region",
+    )
+    result += simpleJobDSL(
       "${top_folder}/${region}/stop-miners",
       "stopMiners(\"${region}\")",
       "Stop Miners in the region",
+    )
+    result += simpleJobDSL(
+      "${top_folder}/${region}/remove-miners",
+      "removeMiners(\"${region}\")",
+      "Remove Miners from the region",
     )
 
     /* Tools */
@@ -242,6 +254,31 @@ def testnetDSL() {
   /* TestNet-global tasks */
   result += testnetCleanAllDSL(top_folder)
   result += testnetUnlockAllDSL(top_folder)
+  result += simpleJobDSL(
+    "${top_folder}/start-miners",
+    "startNetwork()",
+    "Start TestNet",
+  )
+  result += simpleJobDSL(
+    "${top_folder}/add-miners",
+    "increaseNetworkSize()",
+    "Add TestNet Miners",
+  )
+  result += simpleJobDSL(
+    "${top_folder}/stop-miners",
+    "stopNetwork()",
+    "Stop TestNet",
+  )
+  result += simpleJobDSL(
+    "${top_folder}/remove-miners",
+    "decreaseNetworkSize()",
+    "Remove TestNet Miners",
+  )
+  result += simpleJobDSL(
+    "${top_folder}/start-initfactory",
+    "startInitFactory()",
+    "Start InitFactory",
+  )
 
   return result
 }

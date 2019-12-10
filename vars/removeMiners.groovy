@@ -55,13 +55,15 @@ def call(String aws_region) {
             def selector = "app=miner" + (pool_id ? ",miner-pool=${pool_id}" : "")
             def out_tpl = "{{range .items}}{{.metadata.name | printf \"%s\\n\"}}{{end}}"
             stop_list = shell("""${kubectl} get deploy -l ${selector} --template '${out_tpl}' | shuf | head -n ${miner_count}""").split()
-            assert stop_list : "No running miners found"
           }
           echo "Worker(s) to stop: ${stop_list}"
         }
       }
 
       stage("Stop workers") {
+        when {
+          expression { stop_list as boolean }
+        }
         steps {
           sh """${kubectl} delete pvc,deploy ${stop_list.join(" ")}"""
         }

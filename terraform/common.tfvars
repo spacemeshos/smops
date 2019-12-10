@@ -29,7 +29,7 @@ miner_master_ebs_size      = 8
 # Miner pool params
 miner_node_instance_type = "c5.2xlarge"
 miner_node_ebs_size = 12
-miner_nodes_max = 50
+miner_nodes_max = 80
 
 # InitFactory EKS params
 initfactory_master_instance_type = "t3.small"

@@ -70,6 +70,13 @@ def call(config = [:]) {
                               - containerPort: 8080
                                 hostPort: 8080
                                 protocol: TCP
+                            resources:
+                              limits:
+                                cpu: ${poet_cpu_limit}
+                                memory: ${poet_mem_limit}
+                              requests:
+                                cpu: ${poet_cpu_limit}
+                                memory: ${poet_mem_limit}
                   """.stripIndent()
 
   echo "Ensure PoET pool has enough nodes"

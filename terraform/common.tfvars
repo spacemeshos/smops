@@ -41,7 +41,7 @@ initfactory_nodes_num = 1
 initfactory_nodes_max = 40
 
 # PoET parameters
-poet_node_instance_type = "m5a.large"
+poet_node_instance_type = "m5a.2xlarge"
 poet_node_ebs_size      = 12
 
 # MGMT Elasticsearch parameters

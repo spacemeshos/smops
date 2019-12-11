@@ -31,6 +31,9 @@ class commons {
   static final poet_ctx = "mgmt-us-east-1"
   /* AWS Auto Scaling Group with PoET instance */
   static final poet_pool_asg = "spacemesh-testnet-mgmt-us-east-1-poet"
+  /* PoET Pod resource limits */
+  static final poet_cpu_limit = "7800m"
+  static final poet_mem_limit = "30Gi"
 
   /* Default Docker container images */
   static final default_poet_image = "spacemeshos/poet:develop"

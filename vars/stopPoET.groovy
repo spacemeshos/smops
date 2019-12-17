@@ -28,6 +28,14 @@ def call(config = [:]) {
   if(config.keep_nodes) {
     echo "Leaving PoET pool size as-is"
   } else {
+    echo "Listing PoET pool instances"
+    poet_insts = shell("""\
+        aws autoscaling describe-auto-scaling-groups \
+                        --auto-scaling-group-names ${config.pool_asg} \
+                        --region=${config.aws_region} \
+                        --query 'AutoScalingGroups[].Instances[].InstanceId' \
+                        --output text""".stripIndent()).split()
+
     echo "Reducing PoET pool size to 0"
     sh """\
        aws autoscaling update-auto-scaling-group \
@@ -35,6 +43,14 @@ def call(config = [:]) {
                        --region=${config.aws_region} \
                        --desired-capacity 0
        """.stripIndent()
+
+    if(poet_insts) {
+      echo "Waiting for instances to terminate"
+      poet_insts = poet_insts.join(" ")
+      retry(5) {
+        sh """aws ec2 wait instance-terminated --region=${config.aws_region} --instance-ids ${poet_insts}"""
+      }
+    }
   }
 }
 

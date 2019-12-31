@@ -42,9 +42,10 @@ initfactory_nodes_max = 40
 
 # PoET parameters
 poet_node_instance_type = "m5a.2xlarge"
-poet_node_ebs_size      = 12
+poet_node_ebs_size      = 1024
 
 # MGMT Elasticsearch parameters
-mgmt_logging_instance_type = "r5.2xlarge"
+mgmt_logging_instance_type = "r5.xlarge"
+mgmt_logging_pool_size = 2
 
 # vim:filetype=terraform ts=2 sw=2 et:

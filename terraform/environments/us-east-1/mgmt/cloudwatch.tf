@@ -14,7 +14,7 @@ resource "aws_cloudwatch_metric_alarm" "volumes" {
   metric_name               = "miner-vol-available"
   namespace                 = "spacemesh/${var.aws_region_list[count.index]}"
   ok_actions                = []
-  period                    = 900
+  period                    = 3600
   statistic                 = "Minimum"
   tags                      = {}
   threshold                 = 1

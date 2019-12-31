@@ -7,6 +7,7 @@ variable "mgmt_master_ebs_size"      { default = 8 }
 
 variable "mgmt_logging_instance_type" { default = "t3.medium" }
 variable "mgmt_logging_ebs_size"      { default = 12 }
+variable "mgmt_logging_pool_size"     { default = 8 }
 
 variable "mgmt_jenkins_instance_type" { default = "t2.small" }
 variable "mgmt_bastion_instance_type" { default = "t2.small" }

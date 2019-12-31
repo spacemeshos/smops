@@ -19,9 +19,9 @@ module "eks-logging" {
   node_ebs_size      = var.mgmt_logging_ebs_size
   node_ssh_key       = var.ssh_bastion_key
 
-  nodes_min = 4
-  nodes_num = 4
-  nodes_max = 4
+  nodes_min = var.mgmt_logging_pool_size
+  nodes_num = var.mgmt_logging_pool_size
+  nodes_max = var.mgmt_logging_pool_size
 }
 
 ### Logging Nodes Access

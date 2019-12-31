@@ -6,9 +6,7 @@ roles:
   master: "true"
   data: "true"
 
-#masterTerminationFix: true
-
-replicas: 2
+replicas: 3
 minimumMasterNodes: 1
 
 volumeClaimTemplate:
@@ -25,18 +23,18 @@ tolerations:
   effect: NoSchedule
 
 service:
-  type: NodePort
-  nodePort: 31200
+  type: ClusterIP
 
 nodeSelector:
   pool: logging
 
-esJavaOpts: "-Xms32g -Xmx32g"
+esJavaOpts: "-Xms16g -Xmx16g"
+clusterHealthCheckParams: "wait_for_status=green&timeout=120s"
 
 resources:
   requests:
-    cpu: "6"
-    memory: "48Gi"
+    cpu: "3800m"
+    memory: "30Gi"
   limits:
-    cpu: "7900m"
-    memory: "60Gi"
+    cpu: "3800m"
+    memory: "30Gi"

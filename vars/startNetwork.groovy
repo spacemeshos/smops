@@ -160,7 +160,7 @@ def call(String aws_region) {
           }
 
           echo " >>> Bootnodes: ${bootnode.netaddr}"
-          echo " >>> PoET nodeAddress: ${bootnode.nodeaddr}"
+          echo " >>> PoET gatewayAddresses: ${bootnode.nodeaddr}"
         }
       }
 
@@ -176,7 +176,7 @@ def call(String aws_region) {
             }
           }
           echo "Invoking start_mining at '${poet_ip}'"
-          sh """curl -is --data '{"nodeAddress": "${bootnode.nodeaddr}"}' http://${poet_ip}:8080/v1/start"""
+          sh """curl -is --data '{"gatewayAddresses": ["${bootnode.nodeaddr}"]}' http://${poet_ip}:8080/v1/start"""
         }
       }
 

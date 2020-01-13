@@ -105,6 +105,7 @@ def call(String aws_region) {
 
             worker_ports = random_ports(miner_count)
             worker_ports.sort()
+            sh "python3 publish_config ${extra_params}"
           }
           echo "Number of miners: ${miner_count}"
           echo "Miner pool ID: ${pool_id}"

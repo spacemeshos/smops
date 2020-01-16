@@ -40,6 +40,8 @@ def call(String aws_region) {
              description: 'Container image to use for PoET'
       string name: 'POET_PARAMS', defaultValue: "", trim: true, \
              description: 'PoET parameters'
+      string name: 'POET_COUNT', defaultValue: '1', trim: true, \
+             description: 'Number of PoETs to start'
 
       /* FIXME: Move these to the seed job to be scriptable */
       string name: 'MINER_COUNT[ap-northeast-2]', defaultValue: '0', trim: true, \
@@ -145,7 +147,7 @@ def call(String aws_region) {
 
       stage("Start PoET") {
         steps {
-          startPoET image: params.POET_IMAGE, params: poet_params
+          startPoET image: params.POET_IMAGE, count: params.POET_COUNT, params: poet_params
         }
       }
 

@@ -35,7 +35,7 @@ def call(config = [:]) {
                     labels:
                       app: ${config.name}
                   spec:
-                    replicas: 1
+                    replicas: ${config.count}
                     selector:
                       matchLabels:
                         app: ${config.name}

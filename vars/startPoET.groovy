@@ -84,14 +84,14 @@ def call(config = [:]) {
      aws autoscaling update-auto-scaling-group \
                      --auto-scaling-group-name ${config.pool_asg} \
                      --region=${config.aws_region} \
-                     --desired-capacity 1
+                     --desired-capacity ${config.count}
      """.stripIndent()
 
   echo "Creating PoET deployment"
   sh """${kubectl} apply -f poet-deploy.yml"""
 
   echo "Waiting for the PoET pod to be scheduled"
-  sh """${kubectl} wait --timeout=3600s --for=condition=Available deploy/${config.name}"""
+  sh """${kubectl} wait --timeout=360s --for=condition=Available deploy/${config.name}"""
 }
 
 /* vim: set filetype=groovy ts=2 sw=2 et : */

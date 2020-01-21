@@ -58,7 +58,7 @@ variable "initfactory_master_ebs_size"      { default = 8 }
 ### PoET parameters
 variable "poet_nodes_min" { default = 0 }
 variable "poet_nodes_num" { default = 0 }
-variable "poet_nodes_max" { default = 1 }
+variable "poet_nodes_max" { default = 10 }
 
 variable "poet_node_instance_type" { default = "t2.small" }
 variable "poet_node_ebs_size"      { default = 12 }

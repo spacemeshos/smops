@@ -38,12 +38,12 @@ def call(String aws_region) {
 
       string name: 'POET_IMAGE', defaultValue: default_poet_image, trim: true, \
              description: 'Container image to use for PoET'
-      string name: 'POET_PARAMS', defaultValue: "", trim: true, \
+      string name: 'POET_PARAMS', defaultValue: "--n 23 --jsonlog", trim: true, \
              description: 'PoET parameters'
       string name: 'POET_COUNT', defaultValue: '1', trim: true, \
              description: 'Number of PoETs to start'
 
-      string name: 'GATEWAY_MINER_COUNT', defaultValue: '0', trim: true, \
+      string name: 'GATEWAY_MINER_COUNT', defaultValue: '1', trim: true, \
              description: 'Number of the gateway miners to start in bootstrap region'
 
       /* FIXME: Move these to the seed job to be scriptable */
@@ -172,8 +172,7 @@ def call(String aws_region) {
       stage("Create gateway workers") {
         steps {
           script {
-            stages = [:]
-            if(miner_count[params.GATEWAY_MINER_COUNT]) {
+            if(params.GATEWAY_MINER_COUNT) {
               runMinersJob = build job: "./${params.BOOT_REGION}/run-miners", parameters: [
                         string(name: 'MINER_COUNT', value: params.GATEWAY_MINER_COUNT as String),
                         string(name: 'POOL_ID', value: pool_id),
@@ -184,12 +183,55 @@ def call(String aws_region) {
                         string(name: 'SPACEMESH_SPACE', value: SPACEMESH_SPACE as String),
                         string(name: 'SPACEMESH_VOL_SIZE', value: vol_size as String),
                         string(name: 'EXTRA_PARAMS', value: extra_params.join(" ")),
-                      ], propagate: false
+                      ]
+
+              echo "Waiting for gateway miners to be ready"
+              timeout(360) {
+                waitUntil {
+                  script {
+                    r = shell("""kubectl --context=miner-${params.BOOT_REGION} wait pod -l app=miner,miner-node!=bootstrap --for=condition=Ready --timeout=360s 2>/dev/null""")
+                    return (r.count("condition met") == params.GATEWAY_MINER_COUNT as Integer)
+                  }
+                }
+              }
             }
           }
         }
       }
 
+      stage("Getting gateway miners") {
+        steps {
+          script {
+            gosipAddrs = [bootnode.netaddr]
+            grpcAddrs = [bootnode.nodeaddr]
+            vals = shell("""kubectl --context=miner-${params.BOOT_REGION} get pod -l app=miner,miner-node!=bootstrap -o 'jsonpath={range .items[*]}{.metadata.name},{.spec.nodeName},{.spec.containers[0].env[0].value} {end}'""")
+            vals = vals.tokenize()
+            vals.each {pod_miner_port->
+              (podName, minerName, minerPort) = pod_miner_port.tokenize(',')
+              minerIP = shell("""kubectl --context=miner-${params.BOOT_REGION} get node ${minerName} -o 'jsonpath={.status.addresses[1].address}'""")
+              retry(10) {
+                minerID = shell("""kubectl --context=miner-${params.BOOT_REGION} logs ${podName} |\\
+                    sed -ne '/Local node identity / { s/.\\+Local node identity >> \\([a-zA-Z0-9]\\+\\).*/\\1/ ; p; q; }'
+                """.stripIndent().trim())
+
+                gosipAddr = "spacemesh://${minerID}@${minerIP}:${minerPort}"
+                grpcAddr = "${minerName}:9091"
+
+                echo """\
+                  >>> Gateway node:
+                  >>>   - gosipAddr: ${gosipAddr}
+                  >>>   - grpcAddr:  ${grpcAddr}
+                  """.stripIndent()
+              }
+              gosipAddrs.add(gosipAddr)
+              grpcAddrs.add(grpcAddr)
+            }
+            multi_netaddr = gosipAddrs.toString()
+            multi_nodeaddr = groovy.json.JsonOutput.toJson(grpcAddrs)
+          }
+        }
+      }
+      
       stage("Update PoET config") {
         steps {
           echo "Getting PoET podIP"
@@ -201,40 +243,7 @@ def call(String aws_region) {
               }
             }
           }
-
-          echo "Getting gateway nodes"
-          retry(10) {
-            script {
-              def gosipAddrs = [bootnode.netaddr]
-              def grpcAddrs = [bootnode.nodeaddr]
-              vals = shell("""kubectl --context=miner-${params.BOOT_REGION} get pod -l app=miner -o jsonpath='{range .items[*]}{.status.podIP},{.spec.nodeName},{.spec.containers[0].env[0].value} {end}'""").tokenize()​
-              vals.each {pod_miner_port->
-                def (podIP, minerName, minerPort) = pod_miner_port.tokenize(',')
-                def minerIP = """kubectl --context=miner-${params.BOOT_REGION} get node ${minerName} -o jsonpath='{.status.addresses[1].address}'"""
-                retry(10) {
-                  def minerID = shell("""${kubectl} logs ${podIP} |\\
-                      sed -ne '/Local node identity / { s/.\\+Local node identity >> \\([a-zA-Z0-9]\\+\\).*/\\1/ ; p; q; }'
-                  """.stripIndent().trim())
-
-                  gosipAddr = "spacemesh://${minerID}@${minerIP}:${minerPort}"
-                  grpcAddr = "${minerName}:9091"
-
-                  echo """\
-                    >>> Gateway node:
-                    >>>   - gosipAddr: ${gosipAddr}
-                    >>>   - grpcAddr:  ${grpcAddr}
-                    """.stripIndent()
-                }
-                gosipAddrs.add(gosipAddr)
-                grpcAddrs.add(grpcAddr)
-              }
-              multi_netaddr = gosipAddrs.toString()
-              echo "${multi_netaddr}"
-              multi_nodeaddr = groovy.json.JsonOutput.toJson(grpcAddrs)
-              echo "${multi_nodeaddr}"
-            }
-          }
-          sh """curl -is --data '{"gatewayAddresses": ${multi_nodeaddr}}' http://${poet_ip}:8080/v1/start"""
+          sh """curl -is --data '{"gatewayAddresses": ${multi_nodeaddr}}' ${poet_ip}:8080/v1/start"""
         }
       }
 

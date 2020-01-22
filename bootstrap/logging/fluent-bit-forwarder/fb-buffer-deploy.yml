@@ -7,7 +7,7 @@ metadata:
   labels:
     app: fluent-bit-buffer
 spec:
-  replicas: 2
+  replicas: 6
   selector:
     matchLabels:
       app: fluent-bit-buffer
@@ -39,6 +39,11 @@ spec:
                 configMapKeyRef:
                   name: fluent-bit-buffer
                   key:  logs_es_host
+            - name: LOGS_ES_PORT
+              valueFrom:
+                configMapKeyRef:
+                  name: fluent-bit-buffer
+                  key:  logs_es_port
           ports:
             - containerPort: 24224
               protocol: TCP

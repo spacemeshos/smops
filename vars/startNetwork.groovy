@@ -219,10 +219,10 @@ def call(String aws_region) {
           script {
             gosipAddrs = [bootnode.netaddr]
             grpcAddrs = [bootnode.nodeaddr]
-            vals = shell("""kubectl --context=miner-${params.BOOT_REGION} get pod -l app=miner,miner-node!=bootstrap -o 'jsonpath={range .items[*]}{.metadata.name},{.spec.nodeName},{.spec.containers[0].env[0].value} {end}'""")
+            vals = shell("""kubectl --context=miner-${params.BOOT_REGION} get pod -l app=miner,miner-node!=bootstrap -o 'jsonpath={range .items[*]}{.metadata.name},{.spec.nodeName},(.status.podIP},{.spec.containers[0].env[0].value} {end}'""")
             vals = vals.tokenize()
-            vals.each {pod_miner_port->
-              (podName, minerName, minerPort) = pod_miner_port.tokenize(',')
+            vals.each {pod_miner_ip_port->
+              (podName, minerName, podIP, minerPort) = pod_miner_ip_port.tokenize(',')
               minerIP = shell("""kubectl --context=miner-${params.BOOT_REGION} get node ${minerName} -o 'jsonpath={.status.addresses[1].address}'""")
               retry(10) {
                 minerID = shell("""kubectl --context=miner-${params.BOOT_REGION} logs ${podName} |\\
@@ -230,7 +230,7 @@ def call(String aws_region) {
                 """.stripIndent().trim())
 
                 gosipAddr = "spacemesh://${minerID}@${minerIP}:${minerPort}"
-                grpcAddr = "${minerName}:9091"
+                grpcAddr = "${podIP}:9091"
 
                 echo """\
                   >>> Gateway node:

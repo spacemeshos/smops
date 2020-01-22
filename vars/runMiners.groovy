@@ -111,6 +111,8 @@ def call(String aws_region) {
               extra_params += ["--genesis-time", genesis_time]
             }
 
+            extra_params += ["--grpc-server", "--json-server"]
+
             worker_ports = random_ports(miner_count)
             worker_ports.sort()
           }

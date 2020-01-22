@@ -47,7 +47,7 @@ def call(Map config) {
   startMinerNode(config + [
     node_id: "bootstrap",
     grpc_port: config.grpc_port,
-    params: config.params + ["--grpc-server", "--grpc-port", config.grpc_port],
+    params: config.params + ["--grpc-server", "--grpc-port", config.grpc_port, "--json-server"],
     poet_ip: config.poet_ip
   ])
 

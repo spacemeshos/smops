@@ -7,7 +7,7 @@ set -e
 cd $(dirname $0)
 
 # Load global configuration
-source ../_config.inc.sh
+source ../../_config.inc.sh
 
 # Load chart parameters
 source _chart.inc.sh
@@ -18,20 +18,10 @@ upgrade_chart() {
   helm="command helm --kube-context=$CTX"
 
   echo "Upgrading $RELEASENAME from $CHART_NAME:$CHART_VERSION"
-  $helm upgrade $RELEASENAME $CHART_NAME --version $CHART_VERSION \
+  $helm upgrade $RELEASENAME $CHART_NAME --version $CHART_VERSION $CHART_EXTRA_ARGS \
                                          --values ${CHART_VALUES:-values.yaml}
 }
 
-if [ -n "$1" ] ; then
-  # Working in contexts listed on command line
-  for ctx in $@ ; do
-    upgrade_chart $ctx
-  done
-else
-  # Working in all contexts
-  for reg in $REGIONS ; do for cluster in initfactory miner ; do
-    upgrade_chart "$cluster-$reg"
-  done ; done
-fi
+upgrade_chart mgmt-us-east-1
 
 # vim: ts=2 sw=2 et ai:

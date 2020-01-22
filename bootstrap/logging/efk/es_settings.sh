@@ -6,7 +6,7 @@ source $(dirname $0)/../../_config.inc.sh
 curl="curl -sS -H content-type:application/json"
 
 echo "Creating ingest_timestamp_pipeline"
-$curl -XPUT $LOGS_ES_HOST"/_ingest/pipeline/ingest_timestamp_pipeline?pretty" -d \
+$curl -XPUT $LOGS_ES_URL"/_ingest/pipeline/ingest_timestamp_pipeline?pretty" -d \
 '{
   "description": "Adds a field to a document with the time of ingestion",
   "processors": [
@@ -20,7 +20,7 @@ $curl -XPUT $LOGS_ES_HOST"/_ingest/pipeline/ingest_timestamp_pipeline?pretty" -d
 }'
 
 echo "Creating kubernetes_cluster_template"
-$curl -XPUT $LOGS_ES_HOST"/_template/kubernetes_cluster_template?pretty" -d \
+$curl -XPUT $LOGS_ES_URL"/_template/kubernetes_cluster_template?pretty" -d \
 '{
   "index_patterns": ["kubernetes_cluster-*"],
   "settings": {

@@ -148,7 +148,7 @@ def call(String aws_region) {
         }
       }
 
-      stage("Start PoET") {
+      stage("Create PoET") {
         steps {
           startPoET image: params.POET_IMAGE, count: params.POET_COUNT, params: poet_params
           timeout(360) {

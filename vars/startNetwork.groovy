@@ -243,9 +243,11 @@ def call(String aws_region) {
               }
             }
           }
-          poet_ips = poet_ips.tokenize()
-          poet_ips.each {poet_ip->
-            sh """curl -is --data '{"gatewayAddresses": ${multi_nodeaddr}}' ${poet_ip}:8080/v1/start"""
+          script {
+            poet_ips = poet_ips.tokenize()
+            poet_ips.each {poet_ip->
+              sh """curl -is --data '{"gatewayAddresses": ${multi_nodeaddr}}' ${poet_ip}:8080/v1/start"""
+            }
           }
         }
       }

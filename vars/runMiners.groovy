@@ -119,15 +119,14 @@ def call(String aws_region) {
       stage("Create workers") {
         steps {
           script {
+            p = params.POET_IPS.size()
             worker_ports.eachWithIndex({port, i ->
-              i++
               def i_str = String.format("%04d", i)
-              Random rnd = new Random()
               startMinerNode aws_region: aws_region, pool_id: pool_id, node_id: "${run_id}-node-${i_str}", \
                              miner_image: params.MINER_IMAGE, port: port, \
                              spacemesh_space: SPACEMESH_SPACE, vol_size: vol_size, \
                              params: extra_params, \
-                             poet_ip: params.POET_IPS[rnd.nextInt(params.POET_IPS.size())]
+                             poet_ip: params.POET_IPS[i%p]
             })
           }
         }

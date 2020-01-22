@@ -151,6 +151,23 @@ def call(String aws_region) {
       stage("Start PoET") {
         steps {
           startPoET image: params.POET_IMAGE, count: params.POET_COUNT, params: poet_params
+          timeout(360) {
+            waitUntil {
+              script {
+                r = shell("""${kubectl_poet} wait pod -l app=poet --for=condition=Ready --timeout=360s 2>/dev/null""")
+                return (r.count("condition met") == params.POET_COUNT as Integer)
+              }
+            }
+          }
+          script {
+            poet_ips = shell("""${kubectl_poet} get pod -l app=poet -o 'jsonpath={.items[*].metadata.name}'""")
+            poet_ips = poet_ips.tokenize()
+            echo "poet_ips: ${poet_ips}"
+          }
+        }
+      }
+
+
         }
       }
 
@@ -161,6 +178,7 @@ def call(String aws_region) {
                                           miner_image: params.MINER_IMAGE, port: bootstrap_port, \
                                           vol_size: vol_size, spacemesh_space: SPACEMESH_SPACE, \
                                           params: bootstrap_extra_params, \
+                                          poet_ip: poet_ips[0] \
                                           )
           }
 
@@ -183,6 +201,7 @@ def call(String aws_region) {
                         string(name: 'SPACEMESH_SPACE', value: SPACEMESH_SPACE as String),
                         string(name: 'SPACEMESH_VOL_SIZE', value: vol_size as String),
                         string(name: 'EXTRA_PARAMS', value: extra_params.join(" ")),
+                        string(name: 'POET_IPS', value: poet_ips),
                       ]
 
               echo "Waiting for gateway miners to be ready"
@@ -232,19 +251,9 @@ def call(String aws_region) {
         }
       }
       
-      stage("Update PoET config") {
+      stage("Start PoET") {
         steps {
-          echo "Getting PoET podIP"
-          retry(5) {
-            script {
-              poet_ips = shell("""${kubectl_poet} get pod -l app=poet -o 'jsonpath={.items[*].status.podIP}'""")
-              if(! poet_ips) {
-                error "No podIP for app=poet"
-              }
-            }
-          }
           script {
-            poet_ips = poet_ips.tokenize()
             poet_ips.each {poet_ip->
               sh """curl -is --data '{"gatewayAddresses": ${multi_nodeaddr}}' ${poet_ip}:8080/v1/start"""
             }
@@ -270,7 +279,7 @@ def call(String aws_region) {
                             string(name: 'SPACEMESH_SPACE', value: SPACEMESH_SPACE as String),
                             string(name: 'SPACEMESH_VOL_SIZE', value: vol_size as String),
                             string(name: 'EXTRA_PARAMS', value: extra_params.join(" ")),
-                            string(name: 'POET_IPS', value: poet_ips as String),
+                            string(name: 'POET_IPS', value: poet_ips),
                           ], propagate: false
                 }
               }

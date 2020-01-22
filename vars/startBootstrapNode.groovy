@@ -48,6 +48,7 @@ def call(Map config) {
     node_id: "bootstrap",
     grpc_port: config.grpc_port,
     params: config.params + ["--grpc-server", "--grpc-port", config.grpc_port],
+    poet_ip: config.poet_ip
   ])
 
   echo "Waiting for the bootstrap pod to be scheduled"

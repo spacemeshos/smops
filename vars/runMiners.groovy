@@ -131,7 +131,7 @@ def call(String aws_region) {
                              miner_image: params.MINER_IMAGE, port: port, \
                              spacemesh_space: SPACEMESH_SPACE, vol_size: vol_size, \
                              params: extra_params, \
-                             poet_ip: poet_ips[i%p], \
+                             poet_ip: poet_ips[i%p]
             })
           }
         }

@@ -219,7 +219,7 @@ def call(String aws_region) {
           script {
             gosipAddrs = [bootnode.netaddr]
             grpcAddrs = [bootnode.nodeaddr]
-            vals = shell("""kubectl --context=miner-${params.BOOT_REGION} get pod -l app=miner,miner-node!=bootstrap -o 'jsonpath={range .items[*]}{.metadata.name},{.spec.nodeName},(.status.podIP},{.spec.containers[0].env[0].value} {end}'""")
+            vals = shell("""kubectl --context=miner-${params.BOOT_REGION} get pod -l app=miner,miner-node!=bootstrap -o 'jsonpath={range .items[*]}{.metadata.name},{.spec.nodeName},{.status.podIP},{.spec.containers[0].env[0].value} {end}'""")
             vals = vals.tokenize()
             vals.each {pod_miner_ip_port->
               (podName, minerName, podIP, minerPort) = pod_miner_ip_port.tokenize(',')

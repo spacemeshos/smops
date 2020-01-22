@@ -15,6 +15,7 @@ def call(String aws_region) {
   worker_ports = []
   bootnodes = ""
   extra_params = []
+  poet_ips = []
 
   /*
     PIPELINE
@@ -90,6 +91,10 @@ def call(String aws_region) {
               extra_params = params.EXTRA_PARAMS.trim().tokenize()
             }
 
+            if(params.POET_IPS.trim()) {
+              poet_ips = params.POET_IPS.trim().tokenize()
+            }
+
             if(params.BOOTNODES) {
               extra_params += ["--bootstrap", "--bootnodes", params.BOOTNODES]
             }
@@ -119,14 +124,14 @@ def call(String aws_region) {
       stage("Create workers") {
         steps {
           script {
-            p = params.POET_IPS.size()
+            p = poet_ips.size()
             worker_ports.eachWithIndex({port, i ->
               def i_str = String.format("%04d", i)
               startMinerNode aws_region: aws_region, pool_id: pool_id, node_id: "${run_id}-node-${i_str}", \
                              miner_image: params.MINER_IMAGE, port: port, \
                              spacemesh_space: SPACEMESH_SPACE, vol_size: vol_size, \
                              params: extra_params, \
-                             poet_ip: params.POET_IPS[i%p]
+                             poet_ip: poet_ips[i%p], \
             })
           }
         }

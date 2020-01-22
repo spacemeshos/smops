@@ -160,7 +160,7 @@ def call(String aws_region) {
             }
           }
           script {
-            poet_ips = shell("""${kubectl_poet} get pod -l app=poet -o 'jsonpath={.items[*].metadata.name}'""")
+            poet_ips = shell("""${kubectl_poet} get pod -l app=poet -o 'jsonpath={.items[*].status.podIP}'""")
             poet_ips = poet_ips.tokenize()
             echo "poet_ips: ${poet_ips}"
           }

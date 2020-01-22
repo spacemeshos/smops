@@ -237,13 +237,16 @@ def call(String aws_region) {
           echo "Getting PoET podIP"
           retry(5) {
             script {
-              poet_ip = shell("""${kubectl_poet} get pod -l app=poet --template '{{(index .items 0).status.podIP}}'""")
-              if(! poet_ip) {
+              poet_ips = shell("""${kubectl_poet} get pod -l app=poet -o 'jsonpath={.items[*].status.podIP}'""")
+              if(! poet_ips) {
                 error "No podIP for app=poet"
               }
             }
           }
-          sh """curl -is --data '{"gatewayAddresses": ${multi_nodeaddr}}' ${poet_ip}:8080/v1/start"""
+          poet_ips = poet_ips.tokenize()
+          poet_ips.each {poet_ip->
+            sh """curl -is --data '{"gatewayAddresses": ${multi_nodeaddr}}' ${poet_ip}:8080/v1/start"""
+          }
         }
       }
 
@@ -251,6 +254,7 @@ def call(String aws_region) {
         steps {
           script {
             stages = [:]
+            i = 0
             aws_regions.each {region->
               if(miner_count[region]) {
                 stages[region] = {->
@@ -264,6 +268,7 @@ def call(String aws_region) {
                             string(name: 'SPACEMESH_SPACE', value: SPACEMESH_SPACE as String),
                             string(name: 'SPACEMESH_VOL_SIZE', value: vol_size as String),
                             string(name: 'EXTRA_PARAMS', value: extra_params.join(" ")),
+                            string(name: 'POET_IPS', value: poet_ips as String),
                           ], propagate: false
                 }
               }

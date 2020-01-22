@@ -157,7 +157,7 @@ def call(Map config) {
                           args: [ "--config", "/root/config.toml",
                                   "--tcp-port",    \$(SPACEMESH_MINER_PORT),
                                   "--coinbase",    \$(SPACEMESH_COINBASE),
-                                  "--poet-server", \$(SPACEMESH_POET_GRPC),
+                                  "--poet-server", \"${config.poet_ip}:50002\",
                                   "--post-space",  \"${config.spacemesh_space}\",
                                   "--test-mode",
                                   "--start-mining",

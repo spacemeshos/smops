@@ -167,10 +167,6 @@ def call(String aws_region) {
         }
       }
 
-
-        }
-      }
-
       stage("Start bootstrap node") {
         steps {
           script {

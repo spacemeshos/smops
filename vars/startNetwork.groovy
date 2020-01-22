@@ -197,7 +197,7 @@ def call(String aws_region) {
                         string(name: 'SPACEMESH_SPACE', value: SPACEMESH_SPACE as String),
                         string(name: 'SPACEMESH_VOL_SIZE', value: vol_size as String),
                         string(name: 'EXTRA_PARAMS', value: extra_params.join(" ")),
-                        string(name: 'POET_IPS', value: poet_ips),
+                        string(name: 'POET_IPS', value: poet_ips as String),
                       ]
 
               echo "Waiting for gateway miners to be ready"
@@ -275,7 +275,7 @@ def call(String aws_region) {
                             string(name: 'SPACEMESH_SPACE', value: SPACEMESH_SPACE as String),
                             string(name: 'SPACEMESH_VOL_SIZE', value: vol_size as String),
                             string(name: 'EXTRA_PARAMS', value: extra_params.join(" ")),
-                            string(name: 'POET_IPS', value: poet_ips),
+                            string(name: 'POET_IPS', value: poet_ips as String),
                           ], propagate: false
                 }
               }

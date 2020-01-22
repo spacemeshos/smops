@@ -27,7 +27,8 @@ data:
         Name             tail
         Path             /var/log/containers/*.log
         Parser           docker
-        Tag              kube.*
+        Tag              master.<filename>
+        Tag_Regex        /(?<filename>[^/]+)$
         Refresh_Interval 5
         Mem_Buf_Limit    5MB
         Skip_Long_Lines  On
@@ -37,12 +38,12 @@ data:
         Match             *
         Region            \${AWS_REGION}
         Log_Group_Name    spacemesh-testnet-\${SPACEMESH_CLUSTER}
-        Log_Stream_Prefix eks-master-
+        Log_Stream_Prefix eks-
 
     [FILTER]
         Name                kubernetes
-        Match               kube.*
-        Kube_Tag_Prefix     kube.var.log.containers.
+        Match               master.*
+        Kube_Tag_Prefix     master.
         Kube_URL            https://kubernetes.default.svc:443
         Kube_CA_File        /var/run/secrets/kubernetes.io/serviceaccount/ca.crt
         Kube_Token_File     /var/run/secrets/kubernetes.io/serviceaccount/token

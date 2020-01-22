@@ -5,11 +5,14 @@ metadata:
   namespace: logging
   name: fluent-bit-buffer
 data:
+  logs_es_host: "vpc-testnet-logs-us-east-1-yoijtoajfbbgaiwdf5lcnykl7q.us-east-1.es.amazonaws.com"
+  logs_es_port: "80"
+
   fluent-bit.conf: |
     [SERVICE]
         Daemon       Off
-        Flush        30
-        Log_Level    debug
+        Flush        60
+        Log_Level    info
         Parsers_file parsers.conf
         Plugins_file plugins.conf
         HTTP_Server  Off
@@ -17,17 +20,18 @@ data:
     [INPUT]
         Name              forward
         Buffer_Chunk_Size 16M
-        Buffer_Max_Size   32M
+        Buffer_Max_Size   64M
         Mem_Buf_Limit     1G
 
     [OUTPUT]
         Name            es
         Match           *
         Host            ${LOGS_ES_HOST}
-        Port            9200
+        Port            ${LOGS_ES_PORT}
         Type            flb_type
         Time_Key        @ts
         Retry_Limit     False
         Logstash_Format On
         Logstash_Prefix kubernetes_cluster
-  logs_es_host: internal-spacemesh-testnet-mgmt-es-116988061.us-east-1.elb.amazonaws.com
+
+# vim:ts=2 sw=2 et:

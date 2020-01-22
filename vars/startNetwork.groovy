@@ -177,16 +177,13 @@ def call(String aws_region) {
                                           poet_ip: poet_ips[0] \
                                           )
           }
-
-          echo " >>> Bootnodes: ${bootnode.netaddr}"
-          echo " >>> PoET gatewayAddresses: ${bootnode.nodeaddr}"
         }
       }
 
       stage("Create gateway workers") {
         steps {
           script {
-            if(params.GATEWAY_MINER_COUNT) {
+            if(params.GATEWAY_MINER_COUNT as Integer) {
               runMinersJob = build job: "./${params.BOOT_REGION}/run-miners", parameters: [
                         string(name: 'MINER_COUNT', value: params.GATEWAY_MINER_COUNT as String),
                         string(name: 'POOL_ID', value: pool_id),

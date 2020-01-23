@@ -187,7 +187,7 @@ def call(String aws_region) {
               runMinersJob = build job: "./${params.BOOT_REGION}/run-miners", parameters: [
                         string(name: 'MINER_COUNT', value: params.GATEWAY_MINER_COUNT as String),
                         string(name: 'POOL_ID', value: pool_id),
-                        string(name: 'BOOTNODES', value: bootnode.netaddr),
+                        string(name: 'BOOTNODES', value: bootnode.netaddr as String),
                         string(name: 'MINER_IMAGE', value: params.MINER_IMAGE),
                         string(name: 'GENESIS_TIME', value: ''),
                         string(name: 'GENESIS_DELAY', value: ''),
@@ -232,11 +232,11 @@ def call(String aws_region) {
               gosipAddrs.add(gosipAddr)
               grpcAddrs.add(grpcAddr)
             }
-            multi_netaddr = gosipAddrs.toString().replaceAll('\\[|\\]','\'')
+            multi_netaddr = gosipAddrs.join(",")
             multi_nodeaddr = groovy.json.JsonOutput.toJson(grpcAddrs)
             echo """\
-              >>> Gateway nodes: ${multi_nodeaddr}
               >>> Bootstrap nodes: ${multi_netaddr}
+              >>> Gateway nodes: ${multi_nodeaddr}
               """.stripIndent()
           }
         }

@@ -228,18 +228,16 @@ def call(String aws_region) {
 
                 gosipAddr = "spacemesh://${minerID}@${minerIP}:${minerPort}"
                 grpcAddr = "${podIP}:9091"
-
-                echo """\
-                  >>> Gateway node:
-                  >>>   - gosipAddr: ${gosipAddr}
-                  >>>   - grpcAddr:  ${grpcAddr}
-                  """.stripIndent()
               }
               gosipAddrs.add(gosipAddr)
               grpcAddrs.add(grpcAddr)
             }
-            multi_netaddr = gosipAddrs.toString()
+            multi_netaddr = gosipAddrs.toString().replaceAll('\\[|\\]','\'')
             multi_nodeaddr = groovy.json.JsonOutput.toJson(grpcAddrs)
+            echo """\
+              >>> Gateway nodes: ${multi_nodeaddr}
+              >>> Bootstrap nodes: ${multi_netaddr}
+              """.stripIndent()
           }
         }
       }

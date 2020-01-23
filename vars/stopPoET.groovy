@@ -47,7 +47,7 @@ def call(config = [:]) {
     if(poet_insts) {
       echo "Waiting for instances to terminate"
       poet_insts = poet_insts.join(" ")
-      sh """aws ec2 terminate-instances --region=${config.aws_region} --instance-ids ${poet_insts}"""
+      // sh """aws ec2 terminate-instances --region=${config.aws_region} --instance-ids ${poet_insts}"""
       retry(5) {
         sh """aws ec2 wait instance-terminated --region=${config.aws_region} --instance-ids ${poet_insts}"""
       }

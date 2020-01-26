@@ -92,23 +92,17 @@ def call(String aws_region) {
 
             extra_params += ["--grpc-server", "--json-server"]
 
+            worker_ports = random_ports(miner_count)
+            worker_ports.sort()
+
             assert vol_size > 0
             assert miner_count > 0
             assert poet_ips.size() > 0
           }
           echo "Number of miners: ${miner_count}"
           echo "Miner pool ID: ${pool_id}"
+          echo "Miner ports: ${worker_ports}"
           echo "Extra miner params: ${extra_params}"
-        }
-      }
-
-      stage("Get free ports") {
-      	steps {
-          script {
-            busy_ports = shell("""kubectl --context=miner-${aws_region} get deploy --template '{{range .items}}{{(index (index .spec.template.spec.containers 0).ports 0).hostPort}} {{end}}'""").split()
-            worker_ports = random_free_ports(miner_count, busy_ports)
-          }
-          echo "Worker ports: ${worker_ports}"
         }
       }
 

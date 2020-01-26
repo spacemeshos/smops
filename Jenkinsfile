@@ -96,7 +96,7 @@ def topFolderDSL(name, desc="", display_name="") {
         jobs {
           name "unlock-initdata"
           name "start-miners"
-          name "add-miners"
+          name "increase-network"
           name "stop-miners"
           name "remove-miners"
           name "start-initfactory"
@@ -260,7 +260,7 @@ def testnetDSL() {
     "Start TestNet",
   )
   result += simpleJobDSL(
-    "${top_folder}/add-miners",
+    "${top_folder}/increase-network",
     "increaseNetworkSize()",
     "Add TestNet Miners",
   )

@@ -98,7 +98,7 @@ def topFolderDSL(name, desc="", display_name="") {
           name "start-miners"
           name "increase-network"
           name "stop-miners"
-          name "remove-miners"
+          name "decrease-network"
           name "start-initfactory"
           name "cleanup-initfactory-workers"
         }
@@ -270,7 +270,7 @@ def testnetDSL() {
     "Stop TestNet",
   )
   result += simpleJobDSL(
-    "${top_folder}/remove-miners",
+    "${top_folder}/decrease-network",
     "decreaseNetworkSize()",
     "Remove TestNet Miners",
   )

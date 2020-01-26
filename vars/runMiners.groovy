@@ -111,7 +111,7 @@ def call(String aws_region) {
           script {
             p = poet_ips.size()
             worker_ports.eachWithIndex({port, i ->
-              def i_str = String.format("%04d", i)
+              i_str = String.format("%04d", i)
               startMinerNode aws_region: aws_region, pool_id: pool_id, node_id: "${run_id}-node-${i_str}", \
                              miner_image: params.MINER_IMAGE, port: port, \
                              spacemesh_space: SPACEMESH_SPACE, vol_size: vol_size, \

@@ -229,7 +229,7 @@ def call(String aws_region) {
       stage("Create genesis miners") {
         steps {
           script {
-            build job: "./${params.BOOT_REGION}/add-miners", parameters: [
+            build job: "./${params.BOOT_REGION}/increase-network", parameters: [
               string(name: 'MINER_COUNT[ap-northeast-2]', value: miner_count['ap-northeast-2'] as String),
               string(name: 'MINER_COUNT[eu-north-1]', value: miner_count['eu-north-1'] as String),
               string(name: 'MINER_COUNT[us-east-1]', value: miner_count['us-east-1'] as String),

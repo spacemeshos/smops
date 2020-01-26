@@ -54,15 +54,15 @@ def call(String aws_region) {
           }
 
 
-          if(!params.POOL_ID) {
-            echo "Copy params.json from the latest start-network run"
-            copyArtifacts filter: "params.json",
-                          projectName: "./start-miners",
-                          fingerprintArtifacts: true,
-                          flatten: true,
-                          selector: lastSuccessful()
+          script {
+            if(!params.POOL_ID) {
+              echo "Copy params.json from the latest start-network run"
+              copyArtifacts filter: "params.json",
+                            projectName: "./start-miners",
+                            fingerprintArtifacts: true,
+                            flatten: true,
+                            selector: lastSuccessful()
 
-            script {
               echo "Load params.json"
               def params_json = readFile("params.json")
               params.putAll((new groovy.json.JsonSlurper()).parseText(params_json))

@@ -17,10 +17,8 @@ def call(String aws_region) {
   /* Pipeline global vars */
   poet_params = []
   miner_count = [:]
-  worker_ports = []
   bootnode = [:]
   extra_params = []
-  bootstrap_extra_params = []
 
   /*
     PIPELINE
@@ -61,10 +59,7 @@ def call(String aws_region) {
       string name: 'MINER_IMAGE', defaultValue: default_miner_image, trim: true, \
              description: 'Image to use'
 
-      string name: 'GENESIS_TIME', defaultValue: '', trim: true, \
-             description: 'Genesis time'
-
-      string name: 'GENESIS_DELAY', defaultValue: '60', trim: true, \
+      string name: 'GENESIS_DELAY', defaultValue: '10', trim: true, \
              description: 'Genesis delay from now, minutes'
 
       string name: 'SPACEMESH_SPACE',defaultValue: '256G', trim: true, \
@@ -75,9 +70,6 @@ def call(String aws_region) {
 
       string name: 'EXTRA_PARAMS', defaultValue: '', trim: true, \
              description: 'Extra parameters to miner node'
-
-      string name: 'BOOTSTRAP_EXTRA_PARAMS', defaultValue: '', trim: true, \
-             description: 'Extra parameters to bootstrap node (leave blank if the same as miner)'
     }
 
     stages {
@@ -113,42 +105,26 @@ def call(String aws_region) {
 
             if(params.EXTRA_PARAMS) {
               extra_params = params.EXTRA_PARAMS.tokenize()
-              bootstrap_extra_params = extra_params
-            }
-            if(params.BOOTSTRAP_EXTRA_PARAMS) {
-              bootstrap_extra_params = params.BOOTSTRAP_EXTRA_PARAMS.tokenize()
-            }
-
-            def genesis_time = ""
-
-            if(params.GENESIS_TIME) {
-              genesis_time = params.GENESIS_TIME
-            } else if(params.GENESIS_DELAY) {
-              genesis_time = (new Date(currentBuild.startTimeInMillis + (params.GENESIS_DELAY as int)*60*1000)).format("yyyy-MM-dd'T'HH:mm:ss'+00:00'")
-            }
-
-            if(genesis_time) {
-              extra_params += ["--genesis-time", genesis_time]
-              bootstrap_extra_params += ["--genesis-time", genesis_time]
             }
 
             if(params.POET_PARAMS) {
               poet_params = params.POET_PARAMS.tokenize()
             }
 
+            genesis_time = (new Date(currentBuild.startTimeInMillis + (params.GENESIS_DELAY as int)*60*1000)).format("yyyy-MM-dd'T'HH:mm:ss'+00:00'")
+            extra_params += ["--genesis-time", genesis_time]
+
             bootstrap_port = random_port()
           }
 
           echo " >>> Number of miners: ${miner_count}"
           echo " >>> Miner pool ID: ${pool_id}"
-          echo " >>> Miner ports: ${worker_ports}"
           echo " >>> Extra miner params: ${extra_params}"
           echo " >>> Bootstrap node port: ${bootstrap_port}"
-          echo " >>> Extra bootstrap params: ${bootstrap_extra_params}"
         }
       }
 
-      stage("Create PoET") {
+      stage("Create PoETs") {
         steps {
           startPoET image: params.POET_IMAGE, count: params.POET_COUNT, params: poet_params
           timeout(360) {
@@ -173,7 +149,7 @@ def call(String aws_region) {
             bootnode = startBootstrapNode(aws_region: params.BOOT_REGION, pool_id: pool_id, \
                                           miner_image: params.MINER_IMAGE, port: bootstrap_port, \
                                           vol_size: vol_size, spacemesh_space: SPACEMESH_SPACE, \
-                                          params: bootstrap_extra_params, \
+                                          params: extra_params, \
                                           poet_ip: poet_ips[0] \
                                           )
           }
@@ -189,8 +165,6 @@ def call(String aws_region) {
                         string(name: 'POOL_ID', value: pool_id),
                         string(name: 'BOOTNODES', value: bootnode.netaddr as String),
                         string(name: 'MINER_IMAGE', value: params.MINER_IMAGE),
-                        string(name: 'GENESIS_TIME', value: ''),
-                        string(name: 'GENESIS_DELAY', value: ''),
                         string(name: 'SPACEMESH_SPACE', value: SPACEMESH_SPACE as String),
                         string(name: 'SPACEMESH_VOL_SIZE', value: vol_size as String),
                         string(name: 'EXTRA_PARAMS', value: extra_params.join(" ")),
@@ -242,7 +216,7 @@ def call(String aws_region) {
         }
       }
       
-      stage("Start PoET") {
+      stage("Start PoETs") {
         steps {
           script {
             poet_ips.each {poet_ip->
@@ -252,30 +226,22 @@ def call(String aws_region) {
         }
       }
 
-      stage("Create workers") {
+      stage("Create genesis miners") {
         steps {
           script {
-            stages = [:]
-            i = 0
-            aws_regions.each {region->
-              if(miner_count[region]) {
-                stages[region] = {->
-                  build job: "./${region}/run-miners", parameters: [
-                            string(name: 'MINER_COUNT', value: miner_count[region] as String),
-                            string(name: 'POOL_ID', value: pool_id),
-                            string(name: 'BOOTNODES', value: multi_netaddr),
-                            string(name: 'MINER_IMAGE', value: params.MINER_IMAGE),
-                            string(name: 'GENESIS_TIME', value: ''),
-                            string(name: 'GENESIS_DELAY', value: ''),
-                            string(name: 'SPACEMESH_SPACE', value: SPACEMESH_SPACE as String),
-                            string(name: 'SPACEMESH_VOL_SIZE', value: vol_size as String),
-                            string(name: 'EXTRA_PARAMS', value: extra_params.join(" ")),
-                            string(name: 'POET_IPS', value: poet_ips.join(" ")),
-                          ], propagate: false
-                }
-              }
-            }
-            parallel stages
+            def miner_params = [
+              pool_id: pool_id,
+              bootnodes: multi_netaddr,
+              miner_image: params.MINER_IMAGE,
+              spacemesh_space: SPACEMESH_SPACE as String,
+              spacemesh_vol_size: vol_size as String,
+              extra_params: extra_params.join(" "),
+              poet_ips: poet_ips.join(" "),
+            ]
+            build job: "./${params.BOOT_REGION}/add-miners", parameters: [
+              miner_count: miner_count,
+              miner_params: miner_params,
+            ]
           }
         }
       }
@@ -284,15 +250,7 @@ def call(String aws_region) {
         steps {
           script {
             /* Save build parameters as JSON */
-            def params = [
-              pool_id: pool_id,
-              bootnodes: bootnode.netaddr,
-              miner_image: params.MINER_IMAGE,
-              spacemesh_space: SPACEMESH_SPACE as String,
-              spacemesh_vol_size: vol_size as String,
-              extra_params: extra_params.join(" "),
-            ]
-            writeFile file: "params.json", text: groovy.json.JsonOutput.toJson(params)
+            writeFile file: "params.json", text: groovy.json.JsonOutput.toJson(miner_params)
           }
           archiveArtifacts "poet-deploy.yml, miner-*-bootstrap-svc.yml, miner-*-bootstrap-deploy.yml, params.json"
         }

@@ -40,12 +40,6 @@ def call(String aws_region) {
       string name: 'MINER_IMAGE', defaultValue: default_miner_image, trim: true, \
              description: 'Miner pool id'
 
-      string name: 'GENESIS_TIME', defaultValue: '', trim: true, \
-             description: 'Genesis time'
-
-      string name: 'GENESIS_DELAY', defaultValue: '15', trim: true, \
-             description: 'Genesis delay from now, minutes'
-
       string name: 'SPACEMESH_SPACE',defaultValue: '256G', trim: true, \
              description: 'Init file space size. Appeng G for GiB, M for MiB'
 
@@ -81,9 +75,6 @@ def call(String aws_region) {
               SPACEMESH_SPACE = 0
             }
 
-            assert vol_size > 0
-            assert miner_count > 0
-
             pool_id = params.POOL_ID ?: random_id()
             run_id = random_id()
 
@@ -99,27 +90,25 @@ def call(String aws_region) {
               extra_params += ["--bootstrap", "--bootnodes", params.BOOTNODES]
             }
 
-            def genesis_time = ""
-
-            if(params.GENESIS_TIME) {
-              genesis_time = params.GENESIS_TIME
-            } else if(params.GENESIS_DELAY) {
-              genesis_time = (new Date(currentBuild.startTimeInMillis + (params.GENESIS_DELAY as int)*60*1000)).format("yyyy-MM-dd'T'HH:mm:ss'+00:00'")
-            }
-
-            if(genesis_time) {
-              extra_params += ["--genesis-time", genesis_time]
-            }
-
             extra_params += ["--grpc-server", "--json-server"]
 
-            worker_ports = random_ports(miner_count)
-            worker_ports.sort()
+            assert vol_size > 0
+            assert miner_count > 0
+            assert poet_ips.size() > 0
           }
           echo "Number of miners: ${miner_count}"
           echo "Miner pool ID: ${pool_id}"
-          echo "Miner ports: ${worker_ports}"
           echo "Extra miner params: ${extra_params}"
+        }
+      }
+
+      stage("Get free ports") {
+      	steps {
+          script {
+            busy_ports = shell("""kubectl --context=miner-${aws_region} get deploy --template '{{range .items}}{{(index (index .spec.template.spec.containers 0).ports 0).hostPort}} {{end}}'""").split()
+            worker_ports = random_free_ports(miner_count, busy_ports)
+          }
+          echo "Worker ports: ${worker_ports}"
         }
       }
 

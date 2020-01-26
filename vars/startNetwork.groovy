@@ -229,6 +229,27 @@ def call(String aws_region) {
       stage("Create genesis miners") {
         steps {
           script {
+            build job: "./${params.BOOT_REGION}/add-miners", parameters: [
+              string(name: 'MINER_COUNT[ap-northeast-2]', value: miner_count['ap-northeast-2'] as String),
+              string(name: 'MINER_COUNT[eu-north-1]', value: miner_count['eu-north-1'] as String),
+              string(name: 'MINER_COUNT[us-east-1]', value: miner_count['us-east-1'] as String),
+              string(name: 'MINER_COUNT[us-east-2]', value: miner_count['us-east-2'] as String),
+              string(name: 'MINER_COUNT[us-west-2]', value: miner_count['us-west-2'] as String),
+              string(name: 'POOL_ID', value: pool_id),
+              string(name: 'BOOTNODES', value: multi_netaddr),
+              string(name: 'MINER_IMAGE', value: params.MINER_IMAGE),
+              string(name: 'SPACEMESH_SPACE', value: SPACEMESH_SPACE as String),
+              string(name: 'SPACEMESH_VOL_SIZE', value: vol_size as String),
+              string(name: 'EXTRA_PARAMS', value: extra_params.join(" ")),
+              string(name: 'POET_IPS', value: poet_ips.join(" ")),
+            ]
+          }
+        }
+      }
+
+      stage("Archive artifacts") {
+        steps {
+          script {
             def miner_params = [
               pool_id: pool_id,
               bootnodes: multi_netaddr,
@@ -238,17 +259,6 @@ def call(String aws_region) {
               extra_params: extra_params.join(" "),
               poet_ips: poet_ips.join(" "),
             ]
-            build job: "./${params.BOOT_REGION}/add-miners", parameters: [
-              miner_count: miner_count,
-              miner_params: miner_params,
-            ]
-          }
-        }
-      }
-
-      stage("Archive artifacts") {
-        steps {
-          script {
             /* Save build parameters as JSON */
             writeFile file: "params.json", text: groovy.json.JsonOutput.toJson(miner_params)
           }

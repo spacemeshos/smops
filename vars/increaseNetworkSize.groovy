@@ -44,10 +44,6 @@ def call(String aws_region) {
           cleanWs()
 
           echo "params: ${params}"
-          
-          if(params.miner_count) {
-            miner_count = params.miner_count
-          }
 
           script {
             echo "Ensure miner count is positive"
@@ -58,7 +54,7 @@ def call(String aws_region) {
           }
 
 
-          if(!params.miner_params) {
+          if(!params.POOL_ID) {
             echo "Copy params.json from the latest start-network run"
             copyArtifacts filter: "params.json",
                           projectName: "./start-miners",
@@ -69,12 +65,12 @@ def call(String aws_region) {
             script {
               echo "Load params.json"
               def params_json = readFile("params.json")
-              miner_params.putAll((new groovy.json.JsonSlurper()).parseText(params_json))
+              params.putAll((new groovy.json.JsonSlurper()).parseText(params_json))
             }
           }
 
           echo " >>> Number of miners: ${miner_count}"
-          echo " >>> Miner parameters: ${miner_params}"
+          echo " >>> Miner parameters: ${params}"
         }
       }
 
@@ -87,13 +83,13 @@ def call(String aws_region) {
                 stages[region] = {->
                   build job: "./${region}/run-miners", parameters: [
                             string(name: 'MINER_COUNT', value: miner_count[region] as String),
-                            string(name: 'POOL_ID', value: miner_params.pool_id),
-                            string(name: 'BOOTNODES', value: miner_params.bootnodes),
-                            string(name: 'MINER_IMAGE', value: miner_params.miner_image),
-                            string(name: 'SPACEMESH_SPACE', value: miner_params.spacemesh_space),
-                            string(name: 'SPACEMESH_VOL_SIZE', value: miner_params.spacemesh_vol_size),
-                            string(name: 'EXTRA_PARAMS', value: miner_params.extra_params),
-                            string(name: 'POET_IPS', value: miner_params.poet_ips),
+                            string(name: 'POOL_ID', value: params.POOL_ID),
+                            string(name: 'BOOTNODES', value: params.BOOTNODES),
+                            string(name: 'MINER_IMAGE', value: params.MINER_IMAGE),
+                            string(name: 'SPACEMESH_SPACE', value: params.SPACEMESH_SPACE),
+                            string(name: 'SPACEMESH_VOL_SIZE', value: params.SPACEMESH_VOL_SIZE),
+                            string(name: 'EXTRA_PARAMS', value: params.EXTRA_PARAMS),
+                            string(name: 'POET_IPS', value: params.POET_IPS),
                           ], propagate: false
                 }
               }

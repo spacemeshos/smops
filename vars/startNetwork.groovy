@@ -251,13 +251,13 @@ def call(String aws_region) {
         steps {
           script {
             def miner_params = [
-              pool_id: pool_id,
-              bootnodes: multi_netaddr,
-              miner_image: params.MINER_IMAGE,
-              spacemesh_space: SPACEMESH_SPACE as String,
-              spacemesh_vol_size: vol_size as String,
-              extra_params: extra_params.join(" "),
-              poet_ips: poet_ips.join(" "),
+              POOL_ID: pool_id,
+              BOOTNODES: multi_netaddr,
+              MINER_IMAGE: params.MINER_IMAGE,
+              SPACEMESH_SPACE: SPACEMESH_SPACE as String,
+              SPACEMESH_VOL_SIZE: vol_size as String,
+              EXTRA_PARAMS: extra_params.join(" "),
+              POET_IPS: poet_ips.join(" "),
             ]
             /* Save build parameters as JSON */
             writeFile file: "params.json", text: groovy.json.JsonOutput.toJson(miner_params)

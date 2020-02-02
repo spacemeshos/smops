@@ -115,7 +115,7 @@ def call(String aws_region) {
             }
 
             poet_initialduration = params.POET_INITIAL_DURATION.tokenize()
-            assert poet_initialduration.size() != params.POET_COUNT as Int
+            assert poet_initialduration.size() == (params.POET_COUNT as Integer)
 
             genesis_time = (new Date(currentBuild.startTimeInMillis + (params.GENESIS_DELAY as int)*60*1000)).format("yyyy-MM-dd'T'HH:mm:ss'+00:00'")
             extra_params += ["--genesis-time", genesis_time]

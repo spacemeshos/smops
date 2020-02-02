@@ -19,6 +19,7 @@ def call(config = [:]) {
              pool_asg: poet_pool_asg,
              aws_region: aws_poet_region,
              params: [],
+             initialduration: [],
            ] + config
 
   def kubectl = "kubectl --context=${poet_ctx}"
@@ -29,7 +30,7 @@ def call(config = [:]) {
             text: """\
                   ---
                   apiVersion: apps/v1
-                  kind: Deployment
+                  kind: StatefulSet
                   metadata:
                     name: ${config.name}
                     labels:
@@ -61,6 +62,7 @@ def call(config = [:]) {
                             args: [
                               "--rpclisten", "0.0.0.0:50002",
                               "--restlisten", "0.0.0.0:8080",
+                              "--initialduration", ${initialduration[${{ordinal}}]},
                               ${params}
                             ]
                             ports:

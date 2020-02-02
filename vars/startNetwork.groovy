@@ -16,6 +16,7 @@ def call(String aws_region) {
 
   /* Pipeline global vars */
   poet_params = []
+  poet_initialduration = []
   miner_count = [:]
   bootnode = [:]
   extra_params = []
@@ -40,6 +41,8 @@ def call(String aws_region) {
              description: 'PoET parameters'
       string name: 'POET_COUNT', defaultValue: '1', trim: true, \
              description: 'Number of PoETs to start'
+      string name: 'POET_INITIAL_DURATION', defaultValue: '0', trim: true, \
+             description: '--initialduration per PoET'
 
       string name: 'GATEWAY_MINER_COUNT', defaultValue: '1', trim: true, \
              description: 'Number of the gateway miners to start in bootstrap region'
@@ -111,6 +114,9 @@ def call(String aws_region) {
               poet_params = params.POET_PARAMS.tokenize()
             }
 
+            poet_initialduration = params.POET_INITIAL_DURATION.tokenize()
+            assert poet_initialduration.size() != params.POET_COUNT as Int
+
             genesis_time = (new Date(currentBuild.startTimeInMillis + (params.GENESIS_DELAY as int)*60*1000)).format("yyyy-MM-dd'T'HH:mm:ss'+00:00'")
             extra_params += ["--genesis-time", genesis_time]
 
@@ -126,7 +132,7 @@ def call(String aws_region) {
 
       stage("Create PoETs") {
         steps {
-          startPoET image: params.POET_IMAGE, count: params.POET_COUNT, params: poet_params
+          startPoET image: params.POET_IMAGE, count: params.POET_COUNT, params: poet_params, initialduration: poet_initialduration]
           timeout(360) {
             waitUntil {
               script {
@@ -258,6 +264,7 @@ def call(String aws_region) {
               SPACEMESH_VOL_SIZE: vol_size as String,
               EXTRA_PARAMS: extra_params.join(" "),
               POET_IPS: poet_ips.join(" "),
+              GATEWAY_MINERS: multi_nodeaddr,
             ]
             /* Save build parameters as JSON */
             writeFile file: "params.json", text: groovy.json.JsonOutput.toJson(miner_params)

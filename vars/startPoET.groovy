@@ -25,6 +25,8 @@ def call(config = [:]) {
   def kubectl = "kubectl --context=${poet_ctx}"
   def params = """\"${config.params.join('", "')}\""""
 
+  echo "\$(arr=(${config.initialduration.join(" ")}); echo \${arr[\${HOSTNAME##*-}]})"
+
   echo "Writing PoET manifest"
   writeFile file: "poet-deploy.yml",\
             text: """\
@@ -62,7 +64,7 @@ def call(config = [:]) {
                             args: [
                               "--rpclisten", "0.0.0.0:50002",
                               "--restlisten", "0.0.0.0:8080",
-                              "--initialduration", ${initialduration[${{ordinal}}]},
+                              "--initialduration", "\$(arr=(${config.initialduration.join(" ")}); echo \${arr[\${HOSTNAME##*-}]})",
                               ${params}
                             ]
                             ports:

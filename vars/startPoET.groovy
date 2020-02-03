@@ -105,7 +105,8 @@ def call(config = [:]) {
                                 memory: $poet_mem_limit
                             volumeMounts:
                               - name: config-map
-                                mountPath: /root
+                                mountPath: /root/entrypoint.sh
+                                subPath: entrypoint.sh
                   """.stripIndent()
 
   echo "Ensure PoET pool has enough nodes"

@@ -96,8 +96,8 @@ def call(config = [:]) {
   echo "Creating PoET deployment"
   sh """${kubectl} apply -f poet-deploy.yml --validate=false"""
 
-  echo "Waiting for the PoET pod to be scheduled"
-  sh """${kubectl} wait --timeout=360s --for=condition=Available statefulset/${config.name}"""
+  // echo "Waiting for the PoET pod to be scheduled"
+  // sh """${kubectl} wait --timeout=360s --for=condition=Available statefulset/${config.name}"""
 }
 
 /* vim: set filetype=groovy ts=2 sw=2 et : */

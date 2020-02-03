@@ -25,8 +25,6 @@ def call(config = [:]) {
   def kubectl = "kubectl --context=${poet_ctx}"
   def params = """\"${config.params.join('", "')}\""""
 
-  echo "\$(arr=(${config.initialduration.join(" ")}); echo \${arr[\${HOSTNAME##*-}]})"
-
   echo "Writing PoET manifest"
   writeFile file: "poet-deploy.yml",\
             text: """\
@@ -99,7 +97,7 @@ def call(config = [:]) {
   sh """${kubectl} apply -f poet-deploy.yml --validate=false"""
 
   echo "Waiting for the PoET pod to be scheduled"
-  sh """${kubectl} wait --timeout=360s --for=condition=Available deploy/${config.name}"""
+  sh """${kubectl} wait --timeout=360s --for=condition=Available statefulset/${config.name}"""
 }
 
 /* vim: set filetype=groovy ts=2 sw=2 et : */

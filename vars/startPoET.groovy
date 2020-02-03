@@ -24,6 +24,8 @@ def call(config = [:]) {
 
   def kubectl = "kubectl --context=${poet_ctx}"
 
+  echo "config: ${config}"
+
   echo "Writing PoET manifest"
   writeFile file: "poet-deploy.yml",\
             text: """\
@@ -63,12 +65,16 @@ def call(config = [:]) {
                               - "-c"
                               - |
                               /bin/sh <<'EOF'
-                              PARAMS="${config.params}"
-                              echo "\${PARAMS}"
-                              INITIALDURATION=\$(arr=(${config.initialduration}); echo \${arr[\${HOSTNAME##*-}]})
-                              echo "\${INITIALDURATION}"
-                              CMD="/bin/poet --reset --rpclisten '0.0.0.0:50002' --restlisten '0.0.0.0:8080' --initialduration \$INITIALDURATION \$PARAMS"
-                              echo "\$CMD"
+                              INITIALDURATION="${config.initialduration}"
+                              echo "INITIALDURATION:\${INITIALDURATION}"
+                              ARR=(\${INITIALDURATION})
+                              echo "ARR:\${ARR}"
+                              N=\${HOSTNAME##*-}
+                              echo "N:\${N}"
+                              PARAMS="${config.params} --initialduration \${ARR[\${N}]}"
+                              echo "PARAMS:\${PARAMS}"
+                              CMD="/bin/poet --reset --rpclisten '0.0.0.0:50002' --restlisten '0.0.0.0:8080' \$PARAMS"
+                              echo "\${CMD}"
                               $(CMD)
                               EOF
                             ports:

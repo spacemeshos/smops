@@ -56,9 +56,9 @@ def call(Map config) {
 
   echo "Getting the node which runs the pod"
 
-  (bootstrap_pod, pod_status, pod_node) = shell("""\
+  (bootstrap_pod, pod_ip, pod_node) = shell("""\
     ${kubectl} get pod -l miner-pool=${config.pool_id},miner-node=bootstrap \\
-       --template '{{\$i := index .items 0 }}{{\$i.metadata.name}} {{\$i.status.phase}} {{\$i.spec.nodeName}}' \\
+       --template '{{\$i := index .items 0 }}{{\$i.metadata.name}} {{\$i.status.podIP}} {{\$i.spec.nodeName}}' \\
        2>/dev/null
   """.stripIndent().trim()).split()
 
@@ -91,7 +91,7 @@ def call(Map config) {
 
   return [
     netaddr:  "spacemesh://${bootstrap_id}@${bootstrap_addr}:${config.port}",
-    nodeaddr: "${bootstrap_addr}:${bootstrap_grpc_port}",
+    nodeaddr: "${pod_ip}:${bootstrap_grpc_port}",
   ]
 }
 

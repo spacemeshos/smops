@@ -218,7 +218,7 @@ def call(String aws_region) {
         steps {
           script {
             poet_ips.each {poet_ip->
-              sh """curl -is --data '{"gatewayAddresses": ${multi_nodeaddr}}' ${poet_ip}:8080/v1/start"""
+              sh """curl -is --data '{"gatewayAddresses": ${multi_nodeaddr}}' ${poet_ip}:8080/v1/start >/dev/null"""
             }
           }
         }

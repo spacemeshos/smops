@@ -61,7 +61,11 @@ def call(config = [:]) {
                         containers:
                           - name: default
                             image: ${config.image}
+                            command:
+                            - /bin/sh
+                            - -c
                             args: [
+                              "/bin/poet",
                               "--rpclisten", "0.0.0.0:50002",
                               "--restlisten", "0.0.0.0:8080",
                               "--initialduration", "\$(arr=(${config.initialduration.join(" ")}); echo \${arr[\${HOSTNAME##*-}]})",

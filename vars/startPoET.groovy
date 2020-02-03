@@ -74,7 +74,7 @@ def call(config = [:]) {
                           pool: $config.pool
 
                         volumes:
-                          - name: 
+                          - name: config-map
                             configMap:
                               name: poet-files
                               defaultMode: 0555
@@ -92,7 +92,7 @@ def call(config = [:]) {
                               - "-c"
                               - |
                                 apk -q add --update curl bash
-                                /bin/bash entrypoint.sh
+                                /bin/bash /root/entrypoint.sh
                             ports:
                               - containerPort: 50002
                                 hostPort: 50002
@@ -107,6 +107,9 @@ def call(config = [:]) {
                               requests:
                                 cpu: $poet_cpu_limit
                                 memory: $poet_mem_limit
+                            volumeMounts:
+                              - name: config-map
+                                mountPath: /root
                   """.stripIndent()
 
   echo "Ensure PoET pool has enough nodes"

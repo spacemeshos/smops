@@ -28,13 +28,11 @@ def call(config = [:]) {
   writeFile file: "entrypoint.sh", text: '''\
     #!/bin/bash
     set -ex
-    ARR=($(INITIALDURATION))
+    ARR=($INITIALDURATION)
     echo "ARR:$ARR"
     I=${HOSTNAME##*-}
     echo "I:$I"
-    ARGS="--reset --jsonlog --rpclisten '0.0.0.0:50002' --restlisten '0.0.0.0:8080'"
-    ARGS+=" $(PARAMS)"
-    ARGS+=" --initialduration ${ARR[$I]}"
+    ARGS="--reset --jsonlog --rpclisten '0.0.0.0:50002' --restlisten '0.0.0.0:8080' $PARAMS --initialduration ${ARR[$I]}"
     echo "ARGS:$ARGS"
     /bin/poet $ARGS
     '''.stripIndent()
@@ -90,9 +88,7 @@ def call(config = [:]) {
                             command:
                               - /bin/sh
                               - "-c"
-                              - |
-                                apk -q add --update curl bash
-                                /bin/bash /root/entrypoint.sh
+                              - apk -q add --update curl bash; /bin/bash /root/entrypoint.sh
                             ports:
                               - containerPort: 50002
                                 hostPort: 50002

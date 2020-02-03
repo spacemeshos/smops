@@ -43,7 +43,7 @@ def call(config = [:]) {
   sh """$kubectl create configmap poet-files --from-file=entrypoint.sh"""
 
   echo "Writing PoET manifest"
-  writeFile file: "poet-deploy.yml",\
+  writeFile file: "poet-statefulset.yml",\
             text: """\
                   ---
                   apiVersion: apps/v1
@@ -83,14 +83,16 @@ def call(config = [:]) {
                           - name: default
                             image: $config.image
                             env:
-                              - INITIALDURATION: $config.initialduration
-                              - PARAMS: $config.params
+                              - name: INITIALDURATION
+                                value: $config.initialduration
+                              - name: PARAMS
+                                value: $config.params
                             command:
                               - /bin/sh
                               - "-c"
                               - |
-                              apk -q add --update curl bash
-                              /bin/bash entrypoint.sh
+                                apk -q add --update curl bash
+                                /bin/bash entrypoint.sh
                             ports:
                               - containerPort: 50002
                                 hostPort: 50002
@@ -115,8 +117,8 @@ def call(config = [:]) {
                      --desired-capacity $config.count
      """.stripIndent()
 
-  echo "Creating PoET deployment"
-  sh """$kubectl apply -f poet-deploy.yml --validate=false"""
+  echo "Creating PoET statefulset"
+  sh """$kubectl apply -f poet-statefulset.yml --validate=false"""
 
   count = config.count as Integer
   for (i = 0; i < count ; i++) {

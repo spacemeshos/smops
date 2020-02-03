@@ -64,7 +64,7 @@ def call(config = [:]) {
                                 ARR=(${config.initialduration.join(' ')})
                                 N=\${HOSTNAME##*-}
                                 INITIALDURATION=\${ARR[\${N}]}
-                                PARAMS=${config.params.join(' ')}'
+                                PARAMS=\"${config.params.join(' ')}\"
                                 CMD=\"/bin/poet --reset --rpclisten '0.0.0.0:50002' --restlisten '0.0.0.0:8080' --initialduration \$INITIALDURATION \$PARAMS\"
                                 echo \$CMD
                                 $(CMD)

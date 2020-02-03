@@ -32,7 +32,7 @@ def call(config = [:]) {
     echo "ARR:$ARR"
     I=${HOSTNAME##*-}
     echo "I:$I"
-    ARGS="--reset --jsonlog --rpclisten '0.0.0.0:50002' --restlisten '0.0.0.0:8080' $PARAMS --initialduration ${ARR[$I]}"
+    ARGS="--reset --jsonlog --rpclisten=0.0.0.0:50002 --restlisten=0.0.0.0:8080 $PARAMS --initialduration ${ARR[$I]}"
     echo "ARGS:$ARGS"
     /bin/poet $ARGS
     '''.stripIndent()

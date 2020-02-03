@@ -44,7 +44,7 @@ def call(String aws_region) {
       string name: 'POET_INITIAL_DURATION', defaultValue: '0', trim: true, \
              description: '--initialduration per PoET'
 
-      string name: 'GATEWAY_MINER_COUNT', defaultValue: '1', trim: true, \
+      string name: 'GATEWAY_MINER_COUNT', defaultValue: '0', trim: true, \
              description: 'Number of the gateway miners to start in bootstrap region'
 
       /* FIXME: Move these to the seed job to be scriptable */

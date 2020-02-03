@@ -59,14 +59,18 @@ def call(config = [:]) {
                           - name: default
                             image: ${config.image}
                             command:
-                              - PARAMS="${config.params}"
-                              - INITIALDURATION=\$(arr=(${config.initialduration}); echo \${arr[\${HOSTNAME##*-}]})
                               - /bin/sh
-                              - -c
-                            args:
-                              - CMD="/bin/poet --reset --rpclisten '0.0.0.0:50002' --restlisten '0.0.0.0:8080' --initialduration \$INITIALDURATION \$PARAMS";
-                                echo "\$CMD";
-                                \$(CMD);
+                              - "-c"
+                              - |
+                              /bin/sh <<'EOF'
+                              PARAMS="${config.params}"
+                              echo "\${PARAMS}"
+                              INITIALDURATION=\$(arr=(${config.initialduration}); echo \${arr[\${HOSTNAME##*-}]})
+                              echo "\${INITIALDURATION}"
+                              CMD="/bin/poet --reset --rpclisten '0.0.0.0:50002' --restlisten '0.0.0.0:8080' --initialduration \$INITIALDURATION \$PARAMS"
+                              echo "\$CMD"
+                              $(CMD)
+                              EOF
                             ports:
                               - containerPort: 50002
                                 hostPort: 50002

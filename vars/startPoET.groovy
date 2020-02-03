@@ -91,7 +91,8 @@ def call(config = [:]) {
   echo "Creating PoET deployment"
   sh """${kubectl} apply -f poet-deploy.yml --validate=false"""
 
-  for (i = 0; i < config.count as Integer ; i++) {
+  count = config.count as Integer
+  for (i = 0; i < count ; i++) {
     echo "Waiting for the poet-${i} to be scheduled"
     sh """${kubectl} wait --timeout=360s --for=condition=Available pod -l statefulset.kubernetes.io/pod-name=poet-${i}"""
   }

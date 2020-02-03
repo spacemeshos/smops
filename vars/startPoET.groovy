@@ -61,7 +61,8 @@ def call(config = [:]) {
                             command: ["/bin/sh", "-c"]
                             args:
                               - ARR=(${config.initialduration});
-                                CMD=\"/bin/poet --reset --rpclisten '0.0.0.0:50002' --restlisten '0.0.0.0:8080' --initialduration \${ARR[\${HOSTNAME##*-}]} ${config.params}";
+                                echo "ARR: \${ARR}"
+                                CMD="/bin/poet --reset --rpclisten '0.0.0.0:50002' --restlisten '0.0.0.0:8080' --initialduration \${ARR[\${HOSTNAME##*-}]} ${config.params}";
                                 echo \$CMD;
                                 $(CMD);
                             ports:

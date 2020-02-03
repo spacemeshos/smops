@@ -65,19 +65,19 @@ def call(config = [:]) {
                             image: ${config.image}
                             command:
                               - /bin/sh
-                              - "-c"
+                              - -c
                               - |
                               /bin/sh <<'EOF'
-                              INITIALDURATION="${initialduration}"
-                              echo "INITIALDURATION:\${INITIALDURATION}"
+                              INITIALDURATION=\"${initialduration}\"
+                              echo \"INITIALDURATION:\${INITIALDURATION}\"
                               ARR=(\${INITIALDURATION})
-                              echo "ARR:\${ARR}"
+                              echo \"ARR:\${ARR}\"
                               N=\${HOSTNAME##*-}
-                              echo "N:\${N}"
-                              PARAMS="${params} --initialduration \${ARR[\${N}]}"
-                              echo "PARAMS:\${PARAMS}"
-                              CMD="/bin/poet --reset --rpclisten '0.0.0.0:50002' --restlisten '0.0.0.0:8080' \$PARAMS"
-                              echo "\${CMD}"
+                              echo \"N:\${N}\"
+                              PARAMS=\"${params} --initialduration \${ARR[\${N}]}\"
+                              echo \"PARAMS:\${PARAMS}\"
+                              CMD=\"/bin/poet --reset --rpclisten '0.0.0.0:50002' --restlisten '0.0.0.0:8080' \$PARAMS\"
+                              echo \"\${CMD}\"
                               $(CMD)
                               EOF
                             ports:

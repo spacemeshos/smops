@@ -18,13 +18,16 @@ def call(config = [:]) {
              pool: "poet",
              pool_asg: poet_pool_asg,
              aws_region: aws_poet_region,
-             params: [],
-             initialduration: [],
            ] + config
 
   def kubectl = "kubectl --context=${poet_ctx}"
 
   echo "config: ${config}"
+  params = config.params as String
+  initialduration = config.initialduration as String
+  echo "params: ${params}"
+  echo "initialduration: ${initialduration}"
+
 
   echo "Writing PoET manifest"
   writeFile file: "poet-deploy.yml",\
@@ -65,13 +68,13 @@ def call(config = [:]) {
                               - "-c"
                               - |
                               /bin/sh <<'EOF'
-                              INITIALDURATION="${config.initialduration}"
+                              INITIALDURATION="${initialduration}"
                               echo "INITIALDURATION:\${INITIALDURATION}"
                               ARR=(\${INITIALDURATION})
                               echo "ARR:\${ARR}"
                               N=\${HOSTNAME##*-}
                               echo "N:\${N}"
-                              PARAMS="${config.params} --initialduration \${ARR[\${N}]}"
+                              PARAMS="${params} --initialduration \${ARR[\${N}]}"
                               echo "PARAMS:\${PARAMS}"
                               CMD="/bin/poet --reset --rpclisten '0.0.0.0:50002' --restlisten '0.0.0.0:8080' \$PARAMS"
                               echo "\${CMD}"

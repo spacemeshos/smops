@@ -91,7 +91,7 @@ def call(Map config) {
 
   return [
     netaddr:  "spacemesh://${bootstrap_id}@${bootstrap_addr}:${config.port}",
-    nodeaddr: "${pod_ip}:${bootstrap_grpc_port}",
+    nodeaddr: "${bootstrap_addr}:${bootstrap_grpc_port}",
   ]
 }
 

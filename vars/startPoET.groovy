@@ -40,8 +40,8 @@ def call(config = [:]) {
     '''.stripIndent()
 
   echo "Creating PoET configmap"
-  sh """$kubectl create configmap poet-files --from-file=entrypoint.sh"""
-
+  sh """$kubectl create configmap poet-files --from-file=entrypoint.sh --dry-run -o yaml | $kubectl apply -f -"""
+  
   echo "Writing PoET manifest"
   writeFile file: "poet-statefulset.yml",\
             text: """\

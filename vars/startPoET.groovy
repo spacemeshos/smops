@@ -27,13 +27,10 @@ def call(config = [:]) {
   echo "Writing PoET entrypoint"
   writeFile file: "entrypoint.sh", text: '''\
     #!/bin/bash
-    set -ex
     ARR=($INITIALDURATION)
-    echo "ARR:$ARR"
     I=${HOSTNAME##*-}
-    echo "I:$I"
     ARGS="--reset --jsonlog --rpclisten=0.0.0.0:50002 --restlisten=0.0.0.0:8080 $PARAMS --initialduration ${ARR[$I]}"
-    echo "ARGS:$ARGS"
+    echo "/bin/poet $ARGS"
     /bin/poet $ARGS
     '''.stripIndent()
 
@@ -123,7 +120,7 @@ def call(config = [:]) {
   count = config.count as Integer
   for (i = 0; i < count ; i++) {
     echo "Waiting for the poet-$i to be scheduled"
-    sh """$kubectl wait --timeout=360s --for=condition=Available pod -l statefulset.kubernetes.io/pod-name=poet-$i"""
+    sh """$kubectl wait pod -l statefulset.kubernetes.io/pod-name=poet-$i --for=condition=ready --timeout=360s 2>/dev/null"""
   }
 }
 

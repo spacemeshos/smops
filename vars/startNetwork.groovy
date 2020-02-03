@@ -133,14 +133,6 @@ def call(String aws_region) {
       stage("Create PoETs") {
         steps {
           startPoET image: params.POET_IMAGE, count: params.POET_COUNT, params: poet_params.join(' '), initialduration: poet_initialduration.join(' ')
-          timeout(360) {
-            waitUntil {
-              script {
-                r = shell("""${kubectl_poet} wait pod -l app=poet --for=condition=Ready --timeout=360s 2>/dev/null""")
-                return (r.count("condition met") == params.POET_COUNT as Integer)
-              }
-            }
-          }
           script {
             poet_ips = shell("""${kubectl_poet} get pod -l app=poet -o 'jsonpath={.items[*].status.podIP}'""")
             poet_ips = poet_ips.tokenize()
@@ -181,7 +173,7 @@ def call(String aws_region) {
               timeout(360) {
                 waitUntil {
                   script {
-                    r = shell("""kubectl --context=miner-${params.BOOT_REGION} wait pod -l app=miner,miner-node!=bootstrap --for=condition=Ready --timeout=360s 2>/dev/null""")
+                    r = shell("""kubectl --context=miner-${params.BOOT_REGION} wait pod -l app=miner,miner-node!=bootstrap --for=condition=ready --timeout=360s 2>/dev/null""")
                     return (r.count("condition met") == params.GATEWAY_MINER_COUNT as Integer)
                   }
                 }

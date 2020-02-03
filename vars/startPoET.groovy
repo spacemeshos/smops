@@ -23,11 +23,26 @@ def call(config = [:]) {
   def kubectl = "kubectl --context=${poet_ctx}"
 
   echo "config: ${config}"
-  params = config.params as String
-  initialduration = config.initialduration as String
+  params = config.params
+  initialduration = config.initialduration
   echo "params: ${params}"
   echo "initialduration: ${initialduration}"
 
+  entrypoint = '''\
+    apk -q add --update curl bash
+    exec /bin/bash "$@"
+    ARR=($(INITIALDURATION))
+    echo "ARR:$ARR"
+    I=${HOSTNAME##*-}
+    echo "I:$I"
+    ARGS="--reset --jsonlog --rpclisten '0.0.0.0:50002' --restlisten '0.0.0.0:8080'"
+    ARGS+=" $(PARAMS)"
+    ARGS+=" --initialduration ${ARR[$I]}"
+    echo "ARGS:$ARGS"
+    /bin/poet $ARGS
+  '''
+
+  echo "entrypoint: $entrypoint"
 
   echo "Writing PoET manifest"
   writeFile file: "poet-deploy.yml",\
@@ -36,50 +51,41 @@ def call(config = [:]) {
                   apiVersion: apps/v1
                   kind: StatefulSet
                   metadata:
-                    name: ${config.name}
+                    name: $config.name
                     labels:
-                      app: ${config.name}
+                      app: $config.name
                   spec:
-                    replicas: ${config.count}
+                    replicas: $config.count
                     selector:
                       matchLabels:
-                        app: ${config.name}
+                        app: $config.name
                     strategy:
                       type: Recreate
                     template:
                       metadata:
                         labels:
-                          app: ${config.name}
+                          app: $config.name
                       spec:
                         tolerations:
                           - effect: NoSchedule
                             key: dedicated
-                            value: ${config.pool}
+                            value: $config.pool
                             operator: Equal
 
                         nodeSelector:
-                          pool: ${config.pool}
+                          pool: $config.pool
 
                         containers:
                           - name: default
-                            image: ${config.image}
+                            image: $config.image
+                            env:
+                              - INITIALDURATION: $config.initialduration
+                              - PARAMS: $config.params
                             command:
                               - /bin/sh
-                              - -c
+                              - "-c"
                               - |
-                              /bin/sh <<'EOF'
-                              INITIALDURATION=\"${initialduration}\"
-                              echo \"INITIALDURATION:\${INITIALDURATION}\"
-                              ARR=(\${INITIALDURATION})
-                              echo \"ARR:\${ARR}\"
-                              N=\${HOSTNAME##*-}
-                              echo \"N:\${N}\"
-                              PARAMS=\"${params} --initialduration \${ARR[\${N}]}\"
-                              echo \"PARAMS:\${PARAMS}\"
-                              CMD=\"/bin/poet --reset --rpclisten '0.0.0.0:50002' --restlisten '0.0.0.0:8080' \$PARAMS\"
-                              echo \"\${CMD}\"
-                              $(CMD)
-                              EOF
+                              $entrypoint
                             ports:
                               - containerPort: 50002
                                 hostPort: 50002
@@ -89,28 +95,28 @@ def call(config = [:]) {
                                 protocol: TCP
                             resources:
                               limits:
-                                cpu: ${poet_cpu_limit}
-                                memory: ${poet_mem_limit}
+                                cpu: $poet_cpu_limit
+                                memory: $poet_mem_limit
                               requests:
-                                cpu: ${poet_cpu_limit}
-                                memory: ${poet_mem_limit}
+                                cpu: $poet_cpu_limit
+                                memory: $poet_mem_limit
                   """.stripIndent()
 
   echo "Ensure PoET pool has enough nodes"
   sh """\
      aws autoscaling update-auto-scaling-group \
-                     --auto-scaling-group-name ${config.pool_asg} \
-                     --region=${config.aws_region} \
-                     --desired-capacity ${config.count}
+                     --auto-scaling-group-name $config.pool_asg \
+                     --region=$config.aws_region \
+                     --desired-capacity $config.count
      """.stripIndent()
 
   echo "Creating PoET deployment"
-  sh """${kubectl} apply -f poet-deploy.yml --validate=false"""
+  sh """$kubectl apply -f poet-deploy.yml --validate=false"""
 
   count = config.count as Integer
   for (i = 0; i < count ; i++) {
-    echo "Waiting for the poet-${i} to be scheduled"
-    sh """${kubectl} wait --timeout=360s --for=condition=Available pod -l statefulset.kubernetes.io/pod-name=poet-${i}"""
+    echo "Waiting for the poet-$i to be scheduled"
+    sh """$kubectl wait --timeout=360s --for=condition=Available pod -l statefulset.kubernetes.io/pod-name=poet-$i"""
   }
 }
 

@@ -37,7 +37,7 @@ def call(String aws_region) {
 
       string name: 'POET_IMAGE', defaultValue: default_poet_image, trim: true, \
              description: 'Container image to use for PoET'
-      string name: 'POET_PARAMS', defaultValue: "--n 23 --jsonlog", trim: true, \
+      string name: 'POET_PARAMS', defaultValue: "--n 23", trim: true, \
              description: 'PoET parameters'
       string name: 'POET_COUNT', defaultValue: '1', trim: true, \
              description: 'Number of PoETs to start'

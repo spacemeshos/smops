@@ -23,7 +23,6 @@ def call(config = [:]) {
            ] + config
 
   def kubectl = "kubectl --context=${poet_ctx}"
-  def params = """\"${config.params.join('", "')}\""""
 
   echo "Writing PoET manifest"
   writeFile file: "poet-deploy.yml",\
@@ -59,17 +58,12 @@ def call(config = [:]) {
                         containers:
                           - name: default
                             image: ${config.image}
-                            command: |
-                              /bin/sh -c "
-                                ARR=(${config.initialduration.join(' ')})
-                                N=\${HOSTNAME##*-}
-                                INITIALDURATION=\${ARR[\${N}]}
-                                PARAMS=\"${config.params.join(' ')}\"
-                                CMD=\"/bin/poet --reset --rpclisten '0.0.0.0:50002' --restlisten '0.0.0.0:8080' --initialduration \$INITIALDURATION \$PARAMS\"
-                                echo \$CMD
-                                $(CMD)
-                              "
+                            command: ["/bin/sh", "-c"]
                             args:
+                              - ARR=(${config.initialduration});
+                                CMD=\"/bin/poet --reset --rpclisten '0.0.0.0:50002' --restlisten '0.0.0.0:8080' --initialduration \${ARR[\${HOSTNAME##*-}]} ${config.params}";
+                                echo \$CMD;
+                                $(CMD);
                             ports:
                               - containerPort: 50002
                                 hostPort: 50002

@@ -132,7 +132,7 @@ def call(String aws_region) {
 
       stage("Create PoETs") {
         steps {
-          startPoET image: params.POET_IMAGE, count: params.POET_COUNT, params: poet_params, initialduration: poet_initialduration
+          startPoET image: params.POET_IMAGE, count: params.POET_COUNT, params: poet_params.join(' '), initialduration: poet_initialduration.join(' ')
           timeout(360) {
             waitUntil {
               script {

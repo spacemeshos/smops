@@ -92,7 +92,7 @@ def call(config = [:]) {
      """.stripIndent()
 
   echo "Creating PoET deployment"
-  sh """${kubectl} apply -f poet-deploy.yml"""
+  sh """${kubectl} apply -f poet-deploy.yml --validate=false"""
 
   echo "Waiting for the PoET pod to be scheduled"
   sh """${kubectl} wait --timeout=360s --for=condition=Available deploy/${config.name}"""

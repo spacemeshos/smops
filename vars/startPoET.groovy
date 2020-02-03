@@ -23,14 +23,11 @@ def call(config = [:]) {
   def kubectl = "kubectl --context=${poet_ctx}"
 
   echo "config: ${config}"
-  params = config.params
-  initialduration = config.initialduration
-  echo "params: ${params}"
-  echo "initialduration: ${initialduration}"
 
-  entrypoint = '''\
-    apk -q add --update curl bash
-    exec /bin/bash "$@"
+  echo "Writing PoET entrypoint"
+  writeFile file: "entrypoint.sh", text: '''\
+    #!/bin/bash
+    set -ex
     ARR=($(INITIALDURATION))
     echo "ARR:$ARR"
     I=${HOSTNAME##*-}
@@ -40,9 +37,10 @@ def call(config = [:]) {
     ARGS+=" --initialduration ${ARR[$I]}"
     echo "ARGS:$ARGS"
     /bin/poet $ARGS
-  '''
+    '''.stripIndent()
 
-  echo "entrypoint: $entrypoint"
+  echo "Creating PoET configmap"
+  sh """$kubectl create configmap poet-files --from-file=entrypoint.sh"""
 
   echo "Writing PoET manifest"
   writeFile file: "poet-deploy.yml",\
@@ -75,6 +73,12 @@ def call(config = [:]) {
                         nodeSelector:
                           pool: $config.pool
 
+                        volumes:
+                          - name: 
+                            configMap:
+                              name: poet-files
+                              defaultMode: 0555
+
                         containers:
                           - name: default
                             image: $config.image
@@ -85,7 +89,8 @@ def call(config = [:]) {
                               - /bin/sh
                               - "-c"
                               - |
-                              $entrypoint
+                              apk -q add --update curl bash
+                              /bin/bash entrypoint.sh
                             ports:
                               - containerPort: 50002
                                 hostPort: 50002

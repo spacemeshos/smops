@@ -23,7 +23,7 @@ def call(config = [:]) {
   def kubectl = "kubectl --context=${poet_ctx}"
 
   echo "Deleting PoET deployment"
-  sh """${kubectl} delete deploy ${config.name} --ignore-not-found"""
+  sh """${kubectl} delete statefulset ${config.name} --ignore-not-found"""
 
   if(config.keep_nodes) {
     echo "Leaving PoET pool size as-is"

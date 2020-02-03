@@ -120,7 +120,7 @@ def call(String aws_region) {
             genesis_time = (new Date(currentBuild.startTimeInMillis + (params.GENESIS_DELAY as int)*60*1000)).format("yyyy-MM-dd'T'HH:mm:ss'+00:00'")
             extra_params += ["--genesis-time", genesis_time]
 
-            bootstrap_port = random_port()
+            bootstrap_port = 9091
           }
 
           echo " >>> Number of miners: ${miner_count}"

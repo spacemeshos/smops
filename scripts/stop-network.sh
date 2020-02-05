@@ -1,2 +1,1 @@
-kubectl config get-contexts -o name | grep 'miner\|mgmt' | xargs -I {} sh -c 'printf -v d "%-26s" " "; echo "${d// /-} {} ${d// /-}"; kubectl --context={} get svc,deploy,pvc,statefulset -n default'
-aws ec2 terminate-instances --instance-ids $(aws ec2 describe-instances --filter "Name=instance-state-name,Values=running" "Name=tag-key,Values=k8s.io/cluster-autoscaler/node-template/label/pool" "Name=tag-value,Values=poet" --query 'Reservations[*].Instances[*].InstanceId' --output text)
+kubectl config get-contexts -o name | grep 'miner\|mgmt' | xargs -I {} sh -c 'printf -v d "%-26s" " "; echo "${d// /-} {} ${d// /-}"; kubectl --context={} delete svc,deploy,pvc,statefulset -n default --all'

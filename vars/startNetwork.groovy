@@ -131,9 +131,6 @@ def call(String aws_region) {
             gateway_count = (params.GATEWAY_MINER_COUNT as Integer) - 1
             assert gateway_count >= 0
 
-            genesis_time = (new Date(currentBuild.startTimeInMillis + (params.GENESIS_DELAY as int)*60*1000)).format("yyyy-MM-dd'T'HH:mm:ss'+00:00'")
-            extra_params += ["--genesis-time", genesis_time]
-
             kubectl_boot = "kubectl --context=miner-${params.BOOT_REGION}"
           }
 
@@ -159,6 +156,12 @@ def call(String aws_region) {
         steps {
           script {
             echo "Initial gateway/bootstrap"
+
+            genesis_time = (new Date(currentBuild.startTimeInMillis + (params.GENESIS_DELAY as int)*60*1000)).format("yyyy-MM-dd'T'HH:mm:ss'+00:00'")
+            extra_params += ["--genesis-time", genesis_time]
+
+            echo " >>> Genesis time: ${genesis_time}"
+            
             runMinersJob = build job: "./${params.BOOT_REGION}/run-miners", parameters: [
               string(name: 'MINER_COUNT', value: '1'),
               string(name: 'POOL_ID', value: pool_id),

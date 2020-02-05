@@ -1,0 +1,1 @@
+aws ec2 terminate-instances --instance-ids $(aws ec2 describe-instances --filter "Name=instance-state-name,Values=running" "Name=tag-key,Values=k8s.io/cluster-autoscaler/node-template/label/pool" "Name=tag-value,Values=poet" --query 'Reservations[*].Instances[*].InstanceId' --output text)

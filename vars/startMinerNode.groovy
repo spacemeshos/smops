@@ -143,6 +143,7 @@ def call(Map config) {
                                   key: poet_url
 
                           args: [ "--config", "/root/config.toml",
+                                  "--executable-path", "/bin/go-spacemesh",
                                   "--tcp-port",    \$(SPACEMESH_MINER_PORT),
                                   "--coinbase",    \$(SPACEMESH_COINBASE),
                                   "--poet-server", \"${config.poet_ip}:50002\",

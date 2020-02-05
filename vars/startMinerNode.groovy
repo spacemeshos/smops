@@ -119,8 +119,6 @@ def call(Map config) {
                             - protocol: UDP
                               containerPort: ${config.port}
                               hostPort: ${config.port}
-                            - containerPort: 9091
-                            - containerPort: 9090
                           readinessProbe:
                             initialDelaySeconds: 10
                             failureThreshold: 30

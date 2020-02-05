@@ -119,10 +119,10 @@ def call(String aws_region) {
             }
 
             assert (params.POET_N as Integer) > 0
-            poet_params += "--n params.POET_N"
+            poet_params = "--n ${params.POET_N}"
 
             if(params.POET_DURATION) {
-              poet_params += " --duration params.POET_DURATION"
+              poet_params += " --duration ${params.POET_DURATION}"
             }
 
             assert (params.POET_COUNT as Integer) > 0

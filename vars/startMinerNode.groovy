@@ -177,8 +177,7 @@ def call(Map config) {
   miner_ext_ip = shell("""\
     ${kubectl} get node ${node_name} \
     -o 'jsonpath={.status.addresses[?(@.type=="ExternalIP")].address}'""")
-  miner_addr = """spacemesh://${miner_id}@${miner_ext_ip}:${config.port}"""
-  sh """${kubectl} label pods ${pod_name} miner-addr=${miner_addr} ${config.labels}"""
+  shell("""${kubectl} label --overwrite pods ${pod_name} miner-id=${miner_id} miner-ext-ip=${miner_ext_ip} miner-ext-port=${config.port} ${config.labels}""")
 }
 
 /* vim: set filetype=groovy ts=2 sw=2 et : */

@@ -157,10 +157,13 @@ def call(String aws_region) {
           script {
             echo "Initial gateway/bootstrap"
 
+
             genesis_time = (new Date(currentBuild.startTimeInMillis + (params.GENESIS_DELAY as int)*60*1000)).format("yyyy-MM-dd'T'HH:mm:ss'+00:00'")
             extra_params += ["--genesis-time", genesis_time]
 
             echo " >>> Genesis time: ${genesis_time}"
+            
+            spacemesh_url = 'spacemesh://{.metadata.labels.miner-id}@{.metadata.labels.miner-ext-ip}:{.metadata.labels.miner-ext-port}'
             
             runMinersJob = build job: "./${params.BOOT_REGION}/run-miners", parameters: [
               string(name: 'MINER_COUNT', value: '1'),
@@ -178,7 +181,7 @@ def call(String aws_region) {
 
             boot_miner = shell("""\
               ${kubectl_boot} wait pod -l miner-role=gateway --for=condition=ready --timeout=360s \
-              -o 'jsonpath={.metadata.labels.miner-addr}'""")
+              -o 'jsonpath=${spacemesh_url}'""")
             
             echo "boot_miner: $boot_miner"
             
@@ -201,7 +204,7 @@ def call(String aws_region) {
 
             bootnodes = shell("""\
               ${kubectl_boot} wait pod -l miner-role=gateway --for=condition=ready --timeout=360s \
-              -o 'jsonpath={.metadata.labels.miner-addr} '""").tokenize().join(',')
+              -o 'jsonpath=${spacemesh_url} '""").tokenize().join(',')
 
             echo "bootnodes: $bootnodes"
           }

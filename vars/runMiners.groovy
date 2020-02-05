@@ -120,7 +120,7 @@ def call(String aws_region) {
             p = poet_ips.size()
             i = 0
             def stepsForParallel = worker_ports.collectEntries {
-              ["Start miner ${run_id}-node-${it}" : node("${it}") {
+              ["Start miner ${run_id}-node-${it}" : node {
                 startMinerNode aws_region: aws_region, pool_id: pool_id, node_id: "${run_id}-node-${it}", \
                   miner_image: params.MINER_IMAGE, port: it, \
                   spacemesh_space: SPACEMESH_SPACE, vol_size: vol_size, \

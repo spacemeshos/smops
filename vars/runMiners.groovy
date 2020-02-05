@@ -118,21 +118,17 @@ def call(String aws_region) {
         steps {
           script {
             p = poet_ips.size()
-            stages = [:]
-            worker_ports.eachWithIndex({port, i ->
+            worker_ports.eachWithIndexParallel({port, i ->
               i_str = String.format("%04d", i)
               echo "i_str: $i_str, port: $port"
-              stages[i_str] = {->
-                startMinerNode aws_region: aws_region, pool_id: pool_id, node_id: "${run_id}-node-${i_str}", \
-                              miner_image: params.MINER_IMAGE, port: port, \
-                              spacemesh_space: SPACEMESH_SPACE, vol_size: vol_size, \
-                              cpu: params.MINER_CPU, mem: params.MINER_MEM, \
-                              params: extra_params, \
-                              poet_ip: poet_ips[i%p], \
-                              labels: params.LABELS
-              }
+              startMinerNode aws_region: aws_region, pool_id: pool_id, node_id: "${run_id}-node-${i_str}", \
+                            miner_image: params.MINER_IMAGE, port: port, \
+                            spacemesh_space: SPACEMESH_SPACE, vol_size: vol_size, \
+                            cpu: params.MINER_CPU, mem: params.MINER_MEM, \
+                            params: extra_params, \
+                            poet_ip: poet_ips[i%p], \
+                            labels: params.LABELS
             })
-            parallel stages
           }
         }
       }

@@ -119,11 +119,6 @@ def call(Map config) {
                             - protocol: UDP
                               containerPort: ${config.port}
                               hostPort: ${config.port}
-                          readinessProbe:
-                            initialDelaySeconds: 10
-                            failureThreshold: 30
-                            tcpSocket:
-                              port: 9091
 
                           env:
                             - name: SPACEMESH_MINER_PORT
@@ -149,6 +144,7 @@ def call(Map config) {
                                   "--metrics-port", "2020",
                                   "--metrics",
                                   "--grpc-server",
+                                  "--grpc-port", "9091",
                                   "--json-server",
                                   "--test-mode",
                                   "--start-mining",

@@ -131,12 +131,6 @@ def call(String aws_region) {
           }
         }
       }
-
-      stage("Archive artifacts") {
-        steps {
-          archiveArtifacts "miner-*-node-0001-deploy.yml"
-        }
-      }
     }
   }
 }

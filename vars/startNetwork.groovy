@@ -70,13 +70,13 @@ def call(String aws_region) {
       string name: 'MINER_MEM', defaultValue: '4Gi', trim: true, \
              description: 'Miner resoruce request for RAM'
 
-      string name: 'GENESIS_DELAY', defaultValue: '10', trim: true, \
+      string name: 'GENESIS_DELAY', defaultValue: '3', trim: true, \
              description: 'Genesis delay from now, minutes'
 
-      string name: 'SPACEMESH_SPACE',defaultValue: '256G', trim: true, \
+      string name: 'SPACEMESH_SPACE',defaultValue: '1M', trim: true, \
              description: 'Init file space size. Appeng G for GiB, M for MiB'
 
-      string name: 'SPACEMESH_VOL_SIZE', defaultValue: '300', trim: true, \
+      string name: 'SPACEMESH_VOL_SIZE', defaultValue: '10', trim: true, \
              description: 'Miner job volume space, in GB'
 
       string name: 'EXTRA_PARAMS', defaultValue: '', trim: true, \

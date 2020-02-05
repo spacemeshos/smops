@@ -13,9 +13,10 @@ def call(String aws_region) {
   /* Pipeline global vars */
   miner_count = 0
   worker_ports = []
-  bootnodes = ""
+  bootnodes = ''
   extra_params = []
   poet_ips = []
+  labels = []
 
   /*
     PIPELINE
@@ -40,6 +41,12 @@ def call(String aws_region) {
       string name: 'MINER_IMAGE', defaultValue: default_miner_image, trim: true, \
              description: 'Miner pool id'
 
+      string name: 'MINER_CPU', defaultValue: '2', trim: true, \
+             description: 'Miner resoruce request for CPU cores'
+
+      string name: 'MINER_MEM', defaultValue: '4Gi', trim: true, \
+             description: 'Miner resoruce request for RAM'
+
       string name: 'SPACEMESH_SPACE',defaultValue: '256G', trim: true, \
              description: 'Init file space size. Appeng G for GiB, M for MiB'
 
@@ -51,6 +58,9 @@ def call(String aws_region) {
              
       string name: 'POET_IPS', defaultValue: '', trim: true, \
              description: 'Poet addresses'
+
+      string name: 'LABELS', defaultValue: '', trim: true, \
+             description: 'List of key=value miner labels (separated by whitespaces)'
     }
 
     stages {
@@ -78,19 +88,17 @@ def call(String aws_region) {
             pool_id = params.POOL_ID ?: random_id()
             run_id = random_id()
 
-            if(params.EXTRA_PARAMS.trim()) {
-              extra_params = params.EXTRA_PARAMS.trim().tokenize()
+            if(params.EXTRA_PARAMS) {
+              extra_params = params.EXTRA_PARAMS.tokenize()
             }
 
-            if(params.POET_IPS.trim()) {
-              poet_ips = params.POET_IPS.trim().tokenize()
+            if(params.POET_IPS) {
+              poet_ips = params.POET_IPS.tokenize()
             }
 
             if(params.BOOTNODES) {
               extra_params += ["--bootstrap", "--bootnodes", params.BOOTNODES]
             }
-
-            extra_params += ["--grpc-server", "--json-server"]
 
             worker_ports = random_ports(miner_count)
             worker_ports.sort()
@@ -115,8 +123,10 @@ def call(String aws_region) {
               startMinerNode aws_region: aws_region, pool_id: pool_id, node_id: "${run_id}-node-${i_str}", \
                              miner_image: params.MINER_IMAGE, port: port, \
                              spacemesh_space: SPACEMESH_SPACE, vol_size: vol_size, \
+                             cpu: params.MINER_CPU, mem: params.MINER_MEM, \
                              params: extra_params, \
-                             poet_ip: poet_ips[i%p]
+                             poet_ip: poet_ips[i%p], \
+                             labels: params.LABELS
             })
           }
         }

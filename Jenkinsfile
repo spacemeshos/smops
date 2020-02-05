@@ -6,11 +6,11 @@ dsl_name = "spacemesh.dsl"
 
 top_folder = "testnet"
 aws_regions = [
-  "ap-northeast-2",
-  "eu-north-1",
   "us-east-1",
   "us-east-2",
   "us-west-2",
+  "ap-northeast-2",
+  "eu-north-1",
   ]
 
 /*

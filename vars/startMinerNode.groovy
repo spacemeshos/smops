@@ -1,13 +1,5 @@
 /*
   Start TestNet Miner node in the region
-
-  Example:
-
-    startMinerNode aws_region: "us-east-1", pool_id: "test01", node_id: "node-0001", \
-                   init_miner_image: "...", miner_image: "...", vol_size: "300", port: 65100, \
-                   spacemesh_space: "1048576", cpu_limit: "1950m", cpu_requests: "1950m", \
-                   grpc_port: 9091, params: []
-
 */
 
 import static io.spacemesh.awsinfra.commons.*
@@ -16,8 +8,8 @@ def call(Map config) {
   /* Defaults */
   config = [miner_image: default_miner_image,
             init_miner_image: "spacemeshos/spacemeshos-miner-init:latest",
-            cpu_requests: "1950m", cpu_limit: "1950m",
-            grpc_port: 0, params: [],
+            cpu: "2", mem: "4Gi",
+            params: [],
             ] + config
 
   kubectl = "kubectl --context=miner-${config.aws_region}"
@@ -127,17 +119,13 @@ def call(Map config) {
                             - protocol: UDP
                               containerPort: ${config.port}
                               hostPort: ${config.port}
-            """ + (config.grpc_port ? """\
-
-                            - protocol: TCP
-                              containerPort: ${config.grpc_port}
-
+                            - containerPort: 9091
+                            - containerPort: 9090
                           readinessProbe:
                             initialDelaySeconds: 10
                             failureThreshold: 30
                             tcpSocket:
-                              port: ${config.grpc_port}
-            """ : "") + """\
+                              port: 9091
 
                           env:
                             - name: SPACEMESH_MINER_PORT
@@ -159,17 +147,21 @@ def call(Map config) {
                                   "--coinbase",    \$(SPACEMESH_COINBASE),
                                   "--poet-server", \"${config.poet_ip}:50002\",
                                   "--post-space",  \"${config.spacemesh_space}\",
+                                  "--metrics-port", "2020",
+                                  "--metrics",
+                                  "--grpc-server",
+                                  "--json-server",
                                   "--test-mode",
                                   "--start-mining",
                                   ${params}
                                 ]
                           resources:
                             limits:
-                              cpu: ${config.cpu_limit}
-                              memory: "2Gi"
+                              cpu: ${config.cpu}
+                              memory: ${config.mem}
                             requests:
-                              cpu: ${config.cpu_requests ?: config.cpu_limit}
-                              memory: "2Gi"
+                              cpu: ${config.cpu}
+                              memory: ${config.mem}
                           volumeMounts:
                             - name: miner-storage
                               mountPath: /root
@@ -177,6 +169,15 @@ def call(Map config) {
 
   echo "Creating ${node}"
   sh """${kubectl} create --save-config -f ${node}-deploy.yml"""
+  (pod_name, node_name) = shell("""\
+    ${kubectl} wait pod -l worker-id=${worker_id} --for=condition=ready --timeout=360s \
+    -o 'jsonpath={.metadata.name} {.spec.nodeName}'""").tokenize()
+  miner_id = shell("""${kubectl} exec ${pod_name} -- ls /root/spacemesh/nodes""")
+  miner_ext_ip = shell("""\
+    ${kubectl} get node ${node_name} \
+    -o 'jsonpath={.status.addresses[?(@.type=="ExternalIP")].address}'""")
+  miner_addr = """spacemesh://${miner_id}@${miner_ext_ip}:${config.port}"""
+  sh """${kubectl} label pods ${pod_name} miner-addr=${miner_addr} ${config.labels}"""
 }
 
 /* vim: set filetype=groovy ts=2 sw=2 et : */

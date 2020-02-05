@@ -13,11 +13,11 @@ package io.spacemesh.awsinfra
 class commons {
   /* The regions covered by TestNet */
   static final aws_regions = [
-    "ap-northeast-2",
-    "eu-north-1",
     "us-east-1",
     "us-east-2",
     "us-west-2",
+    "ap-northeast-2",
+    "eu-north-1",
   ]
 
   /* The region where management infrastructure runs */

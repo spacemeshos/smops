@@ -120,8 +120,8 @@ def call(String aws_region) {
             p = poet_ips.size()
             stages = [:]
             worker_ports.eachWithIndex({port, i ->
+              i_str = String.format("%04d", i)
               stages[i_str] = {
-                i_str = String.format("%04d", i)
                 echo "i_str: $i_str, port: $port"
                 startMinerNode aws_region: aws_region, pool_id: pool_id, node_id: "${run_id}-node-${port}", \
                               miner_image: params.MINER_IMAGE, port: port, \

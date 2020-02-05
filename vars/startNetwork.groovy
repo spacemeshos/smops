@@ -138,7 +138,7 @@ def call(String aws_region) {
           }
 
           echo " >>> Number of gateways/bootstraps: ${gateway_count + 1}"
-          echo " >>> Total number of miners: ${miner_count + gateway_count + 1}"
+          echo " >>> Total number of miners: ${miner_count}"
           echo " >>> Miner pool ID: ${pool_id}"
           echo " >>> Extra miner params: ${extra_params}"
         }

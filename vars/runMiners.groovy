@@ -121,6 +121,7 @@ def call(String aws_region) {
             stages = [:]
             worker_ports.eachWithIndex({port, i ->
               i_str = String.format("%04d", i)
+              echo "i_str: $i_str, port: $port"
               stages[i_str] = {->
                 startMinerNode aws_region: aws_region, pool_id: pool_id, node_id: "${run_id}-node-${i_str}", \
                               miner_image: params.MINER_IMAGE, port: port, \

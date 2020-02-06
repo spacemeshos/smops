@@ -158,12 +158,14 @@ def random_ports(int ctr, int low=62000, int high=65535) {
 def runStep(Map config, int port, int i) {
   return {
     node {
-      echo "before startMinerNode ${i}"
-      p = poet_ips.size()
-      config = config + [node_id: config.node_id + String.format("%04d", i), port: port, poet_ip: poet_ips[i%p]]
-      echo "config: $config"
-      res = startMinerNode(config)
-      echo "after startMinerNode ${i}: ${res}"
+      script {
+        echo "before startMinerNode ${i}"
+        p = poet_ips.size()
+        config = config + [node_id: config.node_id + String.format("%04d", i), port: port, poet_ip: poet_ips[i%p]]
+        echo "config: $config"
+        res = startMinerNode(config)
+        echo "after startMinerNode ${i}: ${res}"
+      }
     }
   }
 }

@@ -154,7 +154,7 @@ def call(String aws_region) {
             // }
             p = poet_ips.size()
             def stepsForParallel = worker_ports.withIndex().collect {
-              ["${it}") : {->
+              ["${it}" : {->
                 return {
                   node {
                     def port = it[0]

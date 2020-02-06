@@ -318,6 +318,9 @@ def startMiner(Map config) {
   (pod_name, node_name) = shell("""\
     ${kubectl} wait pod -l worker-id=${worker_id} --for=condition=ready --timeout=360s \
     -o 'jsonpath={.metadata.name} {.spec.nodeName}'""").tokenize()
+  miner_ext_ip = shell("""\
+    ${kubectl} get node ${node_name} \
+    -o 'jsonpath={.status.addresses[?(@.type=="ExternalIP")].address}'""")
   timeout(10) {
     waitUntil {
       script {
@@ -327,8 +330,8 @@ def startMiner(Map config) {
     }
   }
 
-  shell("""${kubectl} label --overwrite pods ${pod_name} miner-id=${miner_id} miner-ext-ip=${miner_ext_ip} miner-ext-port=${c.port} ${c.labels}""")
-  spacemesh_url = """spacemesh://${miner_id}@${miner_ext_ip}:${c.port}"""
+  shell("""${kubectl} label --overwrite pods ${pod_name} miner-id=${miner_id} miner-ext-ip=${miner_ext_ip} miner-ext-port=${port} ${c.labels}""")
+  spacemesh_url = """spacemesh://${miner_id}@${miner_ext_ip}:${port}"""
   return spacemesh_url
 }
 

@@ -39,7 +39,7 @@ def call(String aws_region) {
              description: 'Bootstrap using these nodes'
 
       string name: 'MINER_IMAGE', defaultValue: default_miner_image, trim: true, \
-             description: 'Miner pool id'
+             description: 'Image to use'
 
       string name: 'MINER_CPU', defaultValue: '2', trim: true, \
              description: 'Miner resoruce request for CPU cores'
@@ -117,31 +117,30 @@ def call(String aws_region) {
       stage("Create workers") {
         steps {
           script {
-            config = [
-              aws_region: aws_region,
-              pool_id: pool_id,
-              node_id: "${run_id}-node-",
-              miner_image: params.MINER_IMAGE,
-              spacemesh_space: SPACEMESH_SPACE,
-              vol_size: vol_size,
-              cpu: params.MINER_CPU,
-              mem: params.MINER_MEM,
-              params: extra_params,
-              labels: params.LABELS,
-            ]
             p = poet_ips.size()
-            parallel {
-              worker_ports.eachWithIndex { port, i ->
-                step {
-                  echo "before startMinerNode ${port}-${i}"
-                  def c = config + [node_id: config.node_id + String.format("%04d", i), port: port, poet_ip: poet_ips[i%p]]
-                  echo "config ${port}-${i}: ${c}"
-                  def res = startMinerNode(c)
-                  echo "after startMinerNode ${port}-${i}: ${res}"
-                }
+            stages = [:]
+            worker_ports.each {port->
+              stages[port] = {->
+                // stage {
+                  startMinerNode([
+                    aws_region: aws_region,
+                    pool_id: pool_id,
+                    node_id: "${run_id}-node-${port}",
+                    miner_image: params.MINER_IMAGE,
+                    spacemesh_space: SPACEMESH_SPACE,
+                    vol_size: vol_size,
+                    cpu: params.MINER_CPU,
+                    mem: params.MINER_MEM,
+                    params: extra_params,
+                    labels: params.LABELS,
+                    port: port,
+                    poet_ip: poet_ips[port%p]
+                  ])
+                // }
               }
             }
           }
+          parallel stages
         }
       }
     }

@@ -120,22 +120,24 @@ def call(String aws_region) {
             p = poet_ips.size()
             stages = [:]
             worker_ports.each {port->
-              stages[port] = {->
-                stage {
-                  startMinerNode([
-                    aws_region: aws_region,
-                    pool_id: pool_id,
-                    node_id: "${run_id}-node-${port}",
-                    miner_image: params.MINER_IMAGE,
-                    spacemesh_space: SPACEMESH_SPACE,
-                    vol_size: vol_size,
-                    cpu: params.MINER_CPU,
-                    mem: params.MINER_MEM,
-                    params: extra_params,
-                    labels: params.LABELS,
-                    port: port,
-                    poet_ip: poet_ips[port%p]
-                  ])
+              stages["$port"] = {->
+                steps {
+                  script {
+                    startMinerNode([
+                      aws_region: aws_region,
+                      pool_id: pool_id,
+                      node_id: "${run_id}-node-${port}",
+                      miner_image: params.MINER_IMAGE,
+                      spacemesh_space: SPACEMESH_SPACE,
+                      vol_size: vol_size,
+                      cpu: params.MINER_CPU,
+                      mem: params.MINER_MEM,
+                      params: extra_params,
+                      labels: params.LABELS,
+                      port: port,
+                      poet_ip: poet_ips[port%p]
+                    ])
+                  }
                 }
               }
             }

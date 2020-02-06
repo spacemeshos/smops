@@ -321,10 +321,10 @@ def startMiner(Map config) {
   miner_ext_ip = shell("""\
     ${kubectl} get node ${node_name} \
     -o 'jsonpath={.status.addresses[?(@.type=="ExternalIP")].address}'""")
-  timeout(10) {
+  timeout(1) {
     waitUntil {
       script {
-        miner_id = shell("""${kubectl} exec ${pod_name} -- ls /root/spacemesh/nodes 2>/dev/null""")
+        miner_id = sh script: """${kubectl} exec ${pod_name} -- ls /root/spacemesh/p2p/nodes 2>/dev/null""", returnStatus: true
         return (miner_id.size() > 0)
       }
     }

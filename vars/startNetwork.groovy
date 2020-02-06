@@ -70,7 +70,7 @@ def call(String aws_region) {
       string name: 'MINER_MEM', defaultValue: '4Gi', trim: true, \
              description: 'Miner resoruce request for RAM'
 
-      string name: 'GENESIS_DELAY', defaultValue: '3', trim: true, \
+      string name: 'GENESIS_DELAY', defaultValue: '10', trim: true, \
              description: 'Genesis delay from now, minutes'
 
       string name: 'SPACEMESH_SPACE',defaultValue: '1M', trim: true, \

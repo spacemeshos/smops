@@ -29,7 +29,7 @@ def call(config = [:]) {
     #!/bin/bash
     ARR=($INITIALDURATION)
     I=${HOSTNAME##*-}
-    ARGS="--reset --jsonlog --rpclisten=0.0.0.0:50002 --restlisten=0.0.0.0:8080 $PARAMS --initialduration ${ARR[$I]}"
+    ARGS="--reset --jsonlog --restlisten=0.0.0.0:8080 $PARAMS --initialduration ${ARR[$I]}"
     echo "/bin/poet $ARGS"
     /bin/poet $ARGS
     '''.stripIndent()
@@ -87,9 +87,6 @@ def call(config = [:]) {
                               - "-c"
                               - apk -q add --update curl bash; /bin/bash /root/entrypoint.sh
                             ports:
-                              - containerPort: 50002
-                                hostPort: 50002
-                                protocol: TCP
                               - containerPort: 8080
                                 hostPort: 8080
                                 protocol: TCP

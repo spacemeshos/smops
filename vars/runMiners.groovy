@@ -324,7 +324,7 @@ def startMiner(Map config) {
   timeout(1) {
     waitUntil {
       script {
-        miner_id = sh script: """${kubectl} exec ${pod_name} -- ls /root/spacemesh/p2p/nodes 2>/dev/null""", returnStatus: true
+        miner_id = shell("""${kubectl} exec ${pod_name} -- /bin/sh -c '[ -d /root/spacemesh/p2p/nodes ] && ls /root/spacemesh/p2p/nodes || echo'""")
         return (miner_id.size() > 0)
       }
     }

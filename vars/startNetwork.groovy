@@ -216,13 +216,13 @@ def call(String aws_region) {
           script {
             gateways = shell("""\
               ${kubectl_boot} wait pod -l miner-role=gateway --for=condition=ready --timeout=360s \
-              -o 'jsonpath={.status.podIP}:9091 '""").tokenize().join(',')
+              -o 'jsonpath={.status.podIP}:9091 '""").tokenize()
 
             echo "gateways: $gateways"
 
             gateways_json = groovy.json.JsonOutput.toJson(gateways)
             poet_ips.each {poet_ip->
-              sh """curl -is --data '{"gatewayAddresses": ${gateways_json}}' ${poet_ip}:8080/v1/start >/dev/null"""
+              sh """curl -is --data '{"gatewayAddresses": ${gateways_json}}' ${poet_ip}:8080/v1/start"""
             }
           }
         }

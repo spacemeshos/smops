@@ -129,47 +129,18 @@ def call(String aws_region) {
               params: extra_params,
               labels: params.LABELS,
             ]
-            // def runStep(Map config, int port, int i) {
-            //   return {
-            //     node {
-            //       echo "before startMinerNode ${i}"
-            //       p = poet_ips.size()
-            //       c = config + [node_id: config.node_id + String.format("%04d", i), port: port, poet_ip: poet_ips[i%p]]
-            //       echo "config ${i}: ${c}"
-            //       res = startMinerNode(c)
-            //       echo "after startMinerNode ${i}: ${res}"
-            //     }
-            //   }
-            // }
-            // parallel {
-            //   worker_ports.eachWithIndex { port, i ->
-            //     step {
-            //       echo "before startMinerNode ${i}"
-            //       p = poet_ips.size()
-            //       c = config + [node_id: config.node_id + String.format("%04d", i), port: port, poet_ip: poet_ips[i%p]]
-            //       echo "config ${i}: ${c}"
-            //       res = startMinerNode(c)
-            //       echo "after startMinerNode ${i}: ${res}"
-            //     }
-            // }
             p = poet_ips.size()
-            def stepsForParallel = worker_ports.withIndex().collect {
-              ["${it}" : {->
-                return {
-                  node {
-                    def port = it[0]
-                    def i = it[1]
-                    echo "before startMinerNode ${port}-${i}"
-                    def c = config + [node_id: config.node_id + String.format("%04d", i), port: port, poet_ip: poet_ips[i%p]]
-                    echo "config ${port}-${i}: ${c}"
-                    def res = startMinerNode(c)
-                    echo "after startMinerNode ${port}-${i}: ${res}"
-                  }
+            parallel {
+              worker_ports.eachWithIndex { port, i ->
+                step {
+                  echo "before startMinerNode ${port}-${i}"
+                  def c = config + [node_id: config.node_id + String.format("%04d", i), port: port, poet_ip: poet_ips[i%p]]
+                  echo "config ${port}-${i}: ${c}"
+                  def res = startMinerNode(c)
+                  echo "after startMinerNode ${port}-${i}: ${res}"
                 }
-              }]
+              }
             }
-            echo "stepsForParallel: $stepsForParallel"
-            parallel stepsForParallel
           }
         }
       }

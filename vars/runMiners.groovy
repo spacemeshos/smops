@@ -130,7 +130,16 @@ def call(String aws_region) {
               labels: params.LABELS,
             ]
             def stepsForParallel = worker_ports.withIndex().collect { port, i ->
-              ["${port}:${i}" : runStep(config, port, i)]
+              ["${port}:${i}" : {->
+                node {
+                  echo "before startMinerNode ${i}"
+                  p = poet_ips.size()
+                  c = config + [node_id: config.node_id + String.format("%04d", i), port: port, poet_ip: poet_ips[i%p]]
+                  echo "config ${i}: $c"
+                  res = startMinerNode(c)
+                  echo "after startMinerNode ${i}: ${res}"
+                }
+              }]
             }
             parallel stepsForParallel
           }

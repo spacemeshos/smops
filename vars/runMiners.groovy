@@ -117,17 +117,20 @@ def call(String aws_region) {
       stage("Create workers") {
         steps {
           script {
-            p = poet_ips.size()
+            config = [
+              aws_region: aws_region,
+              pool_id: pool_id,
+              node_id: "${run_id}-node-",
+              miner_image: params.MINER_IMAGE,
+              spacemesh_space: SPACEMESH_SPACE,
+              vol_size: vol_size,
+              cpu: params.MINER_CPU,
+              mem: params.MINER_MEM,
+              params: extra_params,
+              labels: params.LABELS,
+            ]
             def stepsForParallel = worker_ports.withIndex().collect { port, i ->
-              ["${port}" : {-> startMinerNode aws_region: aws_region, pool_id: pool_id, node_id: "${run_id}-node-${port}", \
-                  miner_image: params.MINER_IMAGE, port: port, \
-                  spacemesh_space: SPACEMESH_SPACE, vol_size: vol_size, \
-                  cpu: params.MINER_CPU, mem: params.MINER_MEM, \
-                  params: extra_params, \
-                  poet_ip: poet_ips[i%p], \
-                  labels: params.LABELS
-                }
-              ]
+              ["${port}:${i}" : runStep(config, port, i)]
             }
             parallel stepsForParallel
           }
@@ -150,6 +153,19 @@ def random_ports(int ctr, int low=62000, int high=65535) {
   })
 
   return ports
+}
+
+def runStep(Map config, int port, int i) {
+  return {
+    node {
+      echo "before startMinerNode ${i}"
+      p = poet_ips.size()
+      config = config + [node_id: config.node_id + String.format("%04d", i), port: port, poet_ip: poet_ips[i%p]]
+      echo "config: $config"
+      res = startMinerNode(config)
+      echo "after startMinerNode ${i}: ${res}"
+    }
+  }
 }
 
 /* vim: set filetype=groovy ts=2 sw=2 et : */

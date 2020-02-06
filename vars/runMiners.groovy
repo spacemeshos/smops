@@ -117,17 +117,17 @@ def call(String aws_region) {
       stage("Create workers") {
         steps {
           script {
+            p = poet_ips.size()
             def builders = [:]
-            worker_ports.eachWithIndex({p, x ->
-              def port = p
-              def i = x
+            worker_ports.eachWithIndex({port, i ->
+              i_str = String.format("%04d", i)
               builders[port] = {->
-                startMiner([aws_region: aws_region, pool_id: pool_id, node_id: "${run_id}-node-${port}", \
+                startMiner([aws_region: aws_region, pool_id: pool_id, node_id: "${run_id}-node-${i_str}", \
                                miner_image: params.MINER_IMAGE, port: port, \
                                spacemesh_space: SPACEMESH_SPACE, vol_size: vol_size, \
                                cpu: params.MINER_CPU, mem: params.MINER_MEM, \
                                params: extra_params, \
-                               poet_ip: poet_ips[port%poet_ips.size()], \
+                               poet_ip: poet_ips[i%p], \
                                labels: params.LABELS])
               }
             })
@@ -163,9 +163,7 @@ def startMiner(Map config) {
             ] + config
 
   def kubectl = "kubectl --context=miner-${c.aws_region}"
-  def node_id = c.node_id
-  def port = c.port
-  def worker_id = "${c.pool_id}-${node_id}"
+  def worker_id = "${c.pool_id}-${c.node_id}"
   def node = "miner-${worker_id}"
   def params = """\"${c.params.join('", "')}\""""
   echo "Writing manifest for ${node}"
@@ -179,7 +177,7 @@ def startMiner(Map config) {
                   labels:
                     app: miner
                     miner-pool: \"${c.pool_id}\"
-                    miner-node: ${node_id}
+                    miner-node: ${c.node_id}
                 spec:
                   storageClassName: gp2-delayed
                   accessModes: [ ReadWriteOnce ]
@@ -194,7 +192,7 @@ def startMiner(Map config) {
                   labels:
                     app: miner
                     miner-pool: \"${c.pool_id}\"
-                    miner-node: ${node_id}
+                    miner-node: ${c.node_id}
                 spec:
                   replicas: 1
                   selector:
@@ -207,7 +205,7 @@ def startMiner(Map config) {
                       labels:
                         app: miner
                         miner-pool: \"${c.pool_id}\"
-                        miner-node: ${node_id}
+                        miner-node: ${c.node_id}
                         worker-id:  \"${worker_id}\"
                     spec:
                       nodeSelector:
@@ -266,15 +264,15 @@ def startMiner(Map config) {
 
                           ports:
                             - protocol: TCP
-                              containerPort: ${port}
-                              hostPort: ${port}
+                              containerPort: ${c.port}
+                              hostPort: ${c.port}
                             - protocol: UDP
-                              containerPort: ${port}
-                              hostPort: ${port}
+                              containerPort: ${c.port}
+                              hostPort: ${c.port}
 
                           env:
                             - name: SPACEMESH_MINER_PORT
-                              value: \"${port}\"
+                              value: \"${c.port}\"
 
                             - name: SPACEMESH_COINBASE
                               valueFrom:
@@ -291,8 +289,8 @@ def startMiner(Map config) {
                                   "--executable-path", "/bin/go-spacemesh",
                                   "--tcp-port",    \$(SPACEMESH_MINER_PORT),
                                   "--coinbase",    \$(SPACEMESH_COINBASE),
-                                  "--poet-server", \"${c.poet_ip}:50002\",
-                                  "--post-space",  \"${c.spacemesh_space}\",
+                                  "--poet-server", "${c.poet_ip}:8080",
+                                  "--post-space",  "${c.spacemesh_space}",
                                   "--metrics-port", "2020",
                                   "--metrics",
                                   "--grpc-server",
@@ -318,13 +316,22 @@ def startMiner(Map config) {
   sh """${kubectl} create --save-config -f ${node}-deploy.yml"""
   (pod_name, node_name) = shell("""\
     ${kubectl} wait pod -l worker-id=${worker_id} --for=condition=ready --timeout=360s \
-    -o 'jsonpath={.metadata.name} {.spec.nodeName}'""").tokenize()
-  miner_id = shell("""${kubectl} exec ${pod_name} -- ls /root/spacemesh/nodes""")
+    -o 'jsonpath={.metadata.name} {.spec.nodeName}'""").tokenize()  
   miner_ext_ip = shell("""\
     ${kubectl} get node ${node_name} \
     -o 'jsonpath={.status.addresses[?(@.type=="ExternalIP")].address}'""")
-  shell("""${kubectl} label --overwrite pods ${pod_name} miner-id=${miner_id} miner-ext-ip=${miner_ext_ip} miner-ext-port=${port} ${c.labels}""")
-  spacemesh_url = """spacemesh://${miner_id}@${miner_ext_ip}:${port}"""
+  timeout(10) {
+    waitUntil {
+      script {
+        miner_id = shell("""${kubectl} exec ${pod_name} -- ls /root/spacemesh/nodes""")
+        return (miner_id.size() > 0)
+      }
+    }
+  }
+
+  shell("""${kubectl} label --overwrite pods ${pod_name} miner-id=${miner_id} miner-ext-ip=${miner_ext_ip} miner-ext-port=${c.port} ${c.labels}""")
+  spacemesh_url = """spacemesh://${miner_id}@${miner_ext_ip}:${c.port}"""
   return spacemesh_url
 }
+
 /* vim: set filetype=groovy ts=2 sw=2 et : */

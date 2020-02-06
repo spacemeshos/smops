@@ -6,7 +6,7 @@ MGMT_REGION="us-east-1"
 
 # Common spacemesh configuration parameters
 SPACEMESH_COINBASE="0x1234"
-SPACEMESH_POET_URL="poet-testnet.spacemesh.io:50002"
+SPACEMESH_POET_URL="poet-testnet.spacemesh.io:8080"
 
 # Logging infrastructure parameters
 LOGS_ES_HOST="vpc-testnet-logs-us-east-1-yoijtoajfbbgaiwdf5lcnykl7q.us-east-1.es.amazonaws.com"

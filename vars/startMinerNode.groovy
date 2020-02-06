@@ -13,9 +13,7 @@ def call(Map config) {
             ] + config
 
   def kubectl = "kubectl --context=miner-${c.aws_region}"
-  def node_id = c.node_id
-  def port = c.port
-  def worker_id = "${c.pool_id}-${node_id}"
+  def worker_id = "${c.pool_id}-${c.node_id}"
   def node = "miner-${worker_id}"
   def params = """\"${c.params.join('", "')}\""""
   echo "Writing manifest for ${node}"
@@ -29,7 +27,7 @@ def call(Map config) {
                   labels:
                     app: miner
                     miner-pool: \"${c.pool_id}\"
-                    miner-node: ${node_id}
+                    miner-node: ${c.node_id}
                 spec:
                   storageClassName: gp2-delayed
                   accessModes: [ ReadWriteOnce ]
@@ -44,7 +42,7 @@ def call(Map config) {
                   labels:
                     app: miner
                     miner-pool: \"${c.pool_id}\"
-                    miner-node: ${node_id}
+                    miner-node: ${c.node_id}
                 spec:
                   replicas: 1
                   selector:
@@ -57,7 +55,7 @@ def call(Map config) {
                       labels:
                         app: miner
                         miner-pool: \"${c.pool_id}\"
-                        miner-node: ${node_id}
+                        miner-node: ${c.node_id}
                         worker-id:  \"${worker_id}\"
                     spec:
                       nodeSelector:
@@ -116,15 +114,15 @@ def call(Map config) {
 
                           ports:
                             - protocol: TCP
-                              containerPort: ${port}
-                              hostPort: ${port}
+                              containerPort: ${c.port}
+                              hostPort: ${c.port}
                             - protocol: UDP
-                              containerPort: ${port}
-                              hostPort: ${port}
+                              containerPort: ${c.port}
+                              hostPort: ${c.port}
 
                           env:
                             - name: SPACEMESH_MINER_PORT
-                              value: \"${port}\"
+                              value: \"${c.port}\"
 
                             - name: SPACEMESH_COINBASE
                               valueFrom:
@@ -141,8 +139,8 @@ def call(Map config) {
                                   "--executable-path", "/bin/go-spacemesh",
                                   "--tcp-port",    \$(SPACEMESH_MINER_PORT),
                                   "--coinbase",    \$(SPACEMESH_COINBASE),
-                                  "--poet-server", \"${c.poet_ip}:50002\",
-                                  "--post-space",  \"${c.spacemesh_space}\",
+                                  "--poet-server", "${c.poet_ip}:8080",
+                                  "--post-space",  "${c.spacemesh_space}",
                                   "--metrics-port", "2020",
                                   "--metrics",
                                   "--grpc-server",
@@ -168,13 +166,21 @@ def call(Map config) {
   sh """${kubectl} create --save-config -f ${node}-deploy.yml"""
   (pod_name, node_name) = shell("""\
     ${kubectl} wait pod -l worker-id=${worker_id} --for=condition=ready --timeout=360s \
-    -o 'jsonpath={.metadata.name} {.spec.nodeName}'""").tokenize()
-  miner_id = shell("""${kubectl} exec ${pod_name} -- ls /root/spacemesh/nodes""")
+    -o 'jsonpath={.metadata.name} {.spec.nodeName}'""").tokenize()  
   miner_ext_ip = shell("""\
     ${kubectl} get node ${node_name} \
     -o 'jsonpath={.status.addresses[?(@.type=="ExternalIP")].address}'""")
-  shell("""${kubectl} label --overwrite pods ${pod_name} miner-id=${miner_id} miner-ext-ip=${miner_ext_ip} miner-ext-port=${port} ${c.labels}""")
-  spacemesh_url = """spacemesh://${miner_id}@${miner_ext_ip}:${port}"""
+  timeout(10) {
+    waitUntil {
+      script {
+        miner_id = shell("""${kubectl} exec ${pod_name} -- ls /root/spacemesh/nodes""")
+        return (miner_id.size() > 0)
+      }
+    }
+  }
+
+  shell("""${kubectl} label --overwrite pods ${pod_name} miner-id=${miner_id} miner-ext-ip=${miner_ext_ip} miner-ext-port=${c.port} ${c.labels}""")
+  spacemesh_url = """spacemesh://${miner_id}@${miner_ext_ip}:${c.port}"""
   return spacemesh_url
 }
 

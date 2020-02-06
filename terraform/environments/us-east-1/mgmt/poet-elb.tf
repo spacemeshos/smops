@@ -1,5 +1,5 @@
 ### Variables
-variable "poet_port" { default = 50002 }
+variable "poet_port" { default = 8080 }
 
 ### PoET REST Load Balancer
 module "poet-grpc-lb" {

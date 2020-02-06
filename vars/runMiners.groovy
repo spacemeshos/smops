@@ -120,14 +120,13 @@ def call(String aws_region) {
             p = poet_ips.size()
             def builders = [:]
             worker_ports.eachWithIndex({port, i ->
-              i_str = String.format("%04d", i)
               builders[port] = {->
-                startMiner([aws_region: aws_region, pool_id: pool_id, node_id: "${run_id}-node-${i_str}", \
+                startMiner([aws_region: aws_region, pool_id: pool_id, node_id: "${run_id}-node-${port}", \
                                miner_image: params.MINER_IMAGE, port: port, \
                                spacemesh_space: SPACEMESH_SPACE, vol_size: vol_size, \
                                cpu: params.MINER_CPU, mem: params.MINER_MEM, \
                                params: extra_params, \
-                               poet_ip: poet_ips[i%p], \
+                               poet_ip: poet_ips[port%p], \
                                labels: params.LABELS])
               }
             })
@@ -163,7 +162,9 @@ def startMiner(Map config) {
             ] + config
 
   def kubectl = "kubectl --context=miner-${c.aws_region}"
-  def worker_id = "${c.pool_id}-${c.node_id}"
+  def node_id = c.node_id
+  def port = c.port
+  def worker_id = "${c.pool_id}-${node_id}"
   def node = "miner-${worker_id}"
   def params = """\"${c.params.join('", "')}\""""
   echo "Writing manifest for ${node}"
@@ -177,7 +178,7 @@ def startMiner(Map config) {
                   labels:
                     app: miner
                     miner-pool: \"${c.pool_id}\"
-                    miner-node: ${c.node_id}
+                    miner-node: ${node_id}
                 spec:
                   storageClassName: gp2-delayed
                   accessModes: [ ReadWriteOnce ]
@@ -192,7 +193,7 @@ def startMiner(Map config) {
                   labels:
                     app: miner
                     miner-pool: \"${c.pool_id}\"
-                    miner-node: ${c.node_id}
+                    miner-node: ${node_id}
                 spec:
                   replicas: 1
                   selector:
@@ -205,7 +206,7 @@ def startMiner(Map config) {
                       labels:
                         app: miner
                         miner-pool: \"${c.pool_id}\"
-                        miner-node: ${c.node_id}
+                        miner-node: ${node_id}
                         worker-id:  \"${worker_id}\"
                     spec:
                       nodeSelector:
@@ -264,15 +265,15 @@ def startMiner(Map config) {
 
                           ports:
                             - protocol: TCP
-                              containerPort: ${c.port}
-                              hostPort: ${c.port}
+                              containerPort: ${port}
+                              hostPort: ${port}
                             - protocol: UDP
-                              containerPort: ${c.port}
-                              hostPort: ${c.port}
+                              containerPort: ${port}
+                              hostPort: ${port}
 
                           env:
                             - name: SPACEMESH_MINER_PORT
-                              value: \"${c.port}\"
+                              value: \"${port}\"
 
                             - name: SPACEMESH_COINBASE
                               valueFrom:
@@ -316,10 +317,7 @@ def startMiner(Map config) {
   sh """${kubectl} create --save-config -f ${node}-deploy.yml"""
   (pod_name, node_name) = shell("""\
     ${kubectl} wait pod -l worker-id=${worker_id} --for=condition=ready --timeout=360s \
-    -o 'jsonpath={.metadata.name} {.spec.nodeName}'""").tokenize()  
-  miner_ext_ip = shell("""\
-    ${kubectl} get node ${node_name} \
-    -o 'jsonpath={.status.addresses[?(@.type=="ExternalIP")].address}'""")
+    -o 'jsonpath={.metadata.name} {.spec.nodeName}'""").tokenize()
   timeout(10) {
     waitUntil {
       script {

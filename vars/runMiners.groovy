@@ -152,15 +152,17 @@ def call(String aws_region) {
             //       echo "after startMinerNode ${i}: ${res}"
             //     }
             // }
-            def stepsForParallel = worker_ports.withIndex().collect { port, i ->
-              ["${port}-${i}" : {->
+            p = poet_ips.size()
+            def stepsForParallel = worker_ports.withIndex().collect {
+              [(it) : {->
                 return {
                   node {
+                    def port = it[0]
+                    def i = it[1]
                     echo "before startMinerNode ${port}-${i}"
-                    p = poet_ips.size()
-                    c = config + [node_id: config.node_id + String.format("%04d", i), port: port, poet_ip: poet_ips[i%p]]
+                    def c = config + [node_id: config.node_id + String.format("%04d", i), port: port, poet_ip: poet_ips[i%p]]
                     echo "config ${port}-${i}: ${c}"
-                    res = startMinerNode(c)
+                    def res = startMinerNode(c)
                     echo "after startMinerNode ${port}-${i}: ${res}"
                   }
                 }

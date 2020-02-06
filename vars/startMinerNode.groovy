@@ -6,16 +6,18 @@ import static io.spacemesh.awsinfra.commons.*
 
 def call(Map config) {
   /* Defaults */
-  config = [miner_image: default_miner_image,
+  def c = [miner_image: default_miner_image,
             init_miner_image: "spacemeshos/spacemeshos-miner-init:latest",
             cpu: "2", mem: "4Gi",
             params: [],
             ] + config
 
-  kubectl = "kubectl --context=miner-${config.aws_region}"
-  worker_id = "${config.pool_id}-${config.node_id}"
-  node = "miner-${worker_id}"
-  params = """\"${config.params.join('", "')}\""""
+  def kubectl = "kubectl --context=miner-${c.aws_region}"
+  def node_id = c.node_id
+  def port = c.port
+  def worker_id = "${c.pool_id}-${node_id}"
+  def node = "miner-${worker_id}"
+  def params = """\"${c.params.join('", "')}\""""
   echo "Writing manifest for ${node}"
   writeFile file: "${node}-deploy.yml", \
             text: ("""\
@@ -26,14 +28,14 @@ def call(Map config) {
                   name: ${node}
                   labels:
                     app: miner
-                    miner-pool: \"${config.pool_id}\"
-                    miner-node: ${config.node_id}
+                    miner-pool: \"${c.pool_id}\"
+                    miner-node: ${node_id}
                 spec:
                   storageClassName: gp2-delayed
                   accessModes: [ ReadWriteOnce ]
                   resources:
                     requests:
-                      storage: ${config.vol_size}Gi
+                      storage: ${c.vol_size}Gi
                 ---
                 apiVersion: apps/v1
                 kind: Deployment
@@ -41,8 +43,8 @@ def call(Map config) {
                   name: ${node}
                   labels:
                     app: miner
-                    miner-pool: \"${config.pool_id}\"
-                    miner-node: ${config.node_id}
+                    miner-pool: \"${c.pool_id}\"
+                    miner-node: ${node_id}
                 spec:
                   replicas: 1
                   selector:
@@ -54,8 +56,8 @@ def call(Map config) {
                     metadata:
                       labels:
                         app: miner
-                        miner-pool: \"${config.pool_id}\"
-                        miner-node: ${config.node_id}
+                        miner-pool: \"${c.pool_id}\"
+                        miner-node: ${node_id}
                         worker-id:  \"${worker_id}\"
                     spec:
                       nodeSelector:
@@ -72,7 +74,7 @@ def call(Map config) {
 
                       initContainers:
                         - name: miner-init
-                          image: \"${config.init_miner_image}\"
+                          image: \"${c.init_miner_image}\"
                           env:
                             - name: SPACEMESH_S3_BUCKET
                               valueFrom:
@@ -101,7 +103,7 @@ def call(Map config) {
                             - name: SPACEMESH_DATADIR
                               value: "./post/data"
                             - name: SPACEMESH_SPACE
-                              value: \"${config.spacemesh_space}\"
+                              value: \"${c.spacemesh_space}\"
 
                           volumeMounts:
                             - name: miner-storage
@@ -109,20 +111,20 @@ def call(Map config) {
 
                       containers:
                         - name: default
-                          image: \"${config.miner_image}\"
+                          image: \"${c.miner_image}\"
                           imagePullPolicy: "Always"
 
                           ports:
                             - protocol: TCP
-                              containerPort: ${config.port}
-                              hostPort: ${config.port}
+                              containerPort: ${port}
+                              hostPort: ${port}
                             - protocol: UDP
-                              containerPort: ${config.port}
-                              hostPort: ${config.port}
+                              containerPort: ${port}
+                              hostPort: ${port}
 
                           env:
                             - name: SPACEMESH_MINER_PORT
-                              value: \"${config.port}\"
+                              value: \"${port}\"
 
                             - name: SPACEMESH_COINBASE
                               valueFrom:
@@ -139,8 +141,8 @@ def call(Map config) {
                                   "--executable-path", "/bin/go-spacemesh",
                                   "--tcp-port",    \$(SPACEMESH_MINER_PORT),
                                   "--coinbase",    \$(SPACEMESH_COINBASE),
-                                  "--poet-server", \"${config.poet_ip}:50002\",
-                                  "--post-space",  \"${config.spacemesh_space}\",
+                                  "--poet-server", \"${c.poet_ip}:50002\",
+                                  "--post-space",  \"${c.spacemesh_space}\",
                                   "--metrics-port", "2020",
                                   "--metrics",
                                   "--grpc-server",
@@ -152,11 +154,11 @@ def call(Map config) {
                                 ]
                           resources:
                             limits:
-                              cpu: ${config.cpu}
-                              memory: ${config.mem}
+                              cpu: ${c.cpu}
+                              memory: ${c.mem}
                             requests:
-                              cpu: ${config.cpu}
-                              memory: ${config.mem}
+                              cpu: ${c.cpu}
+                              memory: ${c.mem}
                           volumeMounts:
                             - name: miner-storage
                               mountPath: /root
@@ -171,8 +173,8 @@ def call(Map config) {
   miner_ext_ip = shell("""\
     ${kubectl} get node ${node_name} \
     -o 'jsonpath={.status.addresses[?(@.type=="ExternalIP")].address}'""")
-  shell("""${kubectl} label --overwrite pods ${pod_name} miner-id=${miner_id} miner-ext-ip=${miner_ext_ip} miner-ext-port=${config.port} ${config.labels}""")
-  spacemesh_url = """spacemesh://${miner_id}@${miner_ext_ip}:${config.port}"""
+  shell("""${kubectl} label --overwrite pods ${pod_name} miner-id=${miner_id} miner-ext-ip=${miner_ext_ip} miner-ext-port=${port} ${c.labels}""")
+  spacemesh_url = """spacemesh://${miner_id}@${miner_ext_ip}:${port}"""
   return spacemesh_url
 }
 

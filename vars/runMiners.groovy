@@ -129,17 +129,20 @@ def call(String aws_region) {
               params: extra_params,
               labels: params.LABELS,
             ]
-            def stepsForParallel = worker_ports.withIndex().collect { port, i ->
-              ["${port}:${i}" : {->
+            def runStep(Map config, int port, int i) {
+              return {
                 node {
                   echo "before startMinerNode ${i}"
                   p = poet_ips.size()
                   c = config + [node_id: config.node_id + String.format("%04d", i), port: port, poet_ip: poet_ips[i%p]]
-                  echo "config ${i}: $c"
+                  echo "config ${i}: ${c}"
                   res = startMinerNode(c)
                   echo "after startMinerNode ${i}: ${res}"
                 }
-              }]
+              }
+            }
+            def stepsForParallel = worker_ports.withIndex().collect { port, i ->
+              ["${port}:${i}" : runStep(config, port, i)]
             }
             parallel stepsForParallel
           }
@@ -162,21 +165,6 @@ def random_ports(int ctr, int low=62000, int high=65535) {
   })
 
   return ports
-}
-
-def runStep(Map config, int port, int i) {
-  return {
-    node {
-      script {
-        echo "before startMinerNode ${i}"
-        p = poet_ips.size()
-        config = config + [node_id: config.node_id + String.format("%04d", i), port: port, poet_ip: poet_ips[i%p]]
-        echo "config: $config"
-        res = startMinerNode(config)
-        echo "after startMinerNode ${i}: ${res}"
-      }
-    }
-  }
 }
 
 /* vim: set filetype=groovy ts=2 sw=2 et : */

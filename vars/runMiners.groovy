@@ -121,7 +121,7 @@ def call(String aws_region) {
             stages = [:]
             worker_ports.each {port->
               stages[port] = {->
-                // stage {
+                stage {
                   startMinerNode([
                     aws_region: aws_region,
                     pool_id: pool_id,
@@ -136,7 +136,7 @@ def call(String aws_region) {
                     port: port,
                     poet_ip: poet_ips[port%p]
                   ])
-                // }
+                }
               }
             }
           }

@@ -138,7 +138,7 @@ def call(Map config) {
                                   "--metrics-port", "2020",
                                   "--metrics",
                                   "--start-mining",
-                                  "--coinbase",     "0x1234",
+                                  "--coinbase",     "910d30bfb6b29577ed130e3fdc27a1cabd639f46ac93831de14279c444b9ef0b",
                                   "--tcp-port",    \$(SPACEMESH_MINER_PORT)
                                 ]
                           resources:

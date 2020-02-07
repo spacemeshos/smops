@@ -85,8 +85,10 @@ def call(String aws_region) {
       string name: 'SYNC_REQUEST_TIMEOUT', defaultValue: '20000', trim: true, description: ''
       string name: 'HDIST', defaultValue: '7', trim: true, description: ''
       string name: 'ATXS_PER_BLOCK', defaultValue: '25', trim: true, description: ''
+      string name: 'POST_LABELS', defaultValue: '100', trim: true, description: ''
       string name: 'NETWORK_ID', defaultValue: '1', trim: true, description: ''
       string name: 'RANDCON', defaultValue: '8', trim: true, description: ''
+      string name: 'MAX_INBOUND', defaultValue: '100', trim: true, description: ''
       string name: 'BASE_REWARD', defaultValue: '50000000000000', trim: true, description: ''
       string name: 'HARE_COMMITTEE_SIZE', defaultValue: '30', trim: true, description: ''
       string name: 'HARE_MAX_ADVERSARIES', defaultValue: '14', trim: true, description: ''
@@ -152,10 +154,12 @@ def call(String aws_region) {
               HDIST: params.HDIST,
               ATXS_PER_BLOCK: params.ATXS_PER_BLOCK,
               NETWORK_ID: params.NETWORK_ID,
+              MAX_INBOUND: params.MAX_INBOUND,
               BOOTSTRAP: 'false',
               RANDCON: params.RANDCON,
               P2P: [],
               POST_SPACE: SPACEMESH_SPACE as String,
+              POST_LABELS: params.POST_LABELS,
               BASE_REWARD: params.BASE_REWARD,
               HARE_COMMITTEE_SIZE: params.HARE_COMMITTEE_SIZE,
               HARE_MAX_ADVERSARIES: params.HARE_MAX_ADVERSARIES,
@@ -323,6 +327,7 @@ def createToml(Map cfg) {
 
       [p2p]
       network-id = "${cfg.NETWORK_ID}"
+      max-inbound = "${cfg.MAX_INBOUND}"
 
       [p2p.swarm]
       bootstrap = ${cfg.BOOTSTRAP}
@@ -335,6 +340,7 @@ def createToml(Map cfg) {
 
       [post]
       post-space = "${cfg.POST_SPACE}"
+      post-labels = "${cfg.POST_LABELS}"
 
       [reward]
       base-reward = "${cfg.BASE_REWARD}"

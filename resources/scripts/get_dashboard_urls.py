@@ -14,7 +14,7 @@ def parse_args():
     """Parse command-line arguments"""
     parser = argparse.ArgumentParser(description="Inventory Kubernetes Dashboard URLs")
     parser.add_argument("--regions", help="Regions", type=str, nargs="+",
-                        default=["ap-northeast-2", "eu-north-1", "us-east-1", "us-east-2", "us-west-2"],
+                        default=["us-east-1", "us-east-2", "us-west-2", "ap-northeast-2", "eu-north-1"],
                         )
     parser.add_argument("--clusters", help="Clusters in each region", type=str, nargs="+",
                         default=["initfactory", "miner"],

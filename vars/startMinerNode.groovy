@@ -71,6 +71,9 @@ def call(Map config) {
                         - name: miner-storage
                           persistentVolumeClaim:
                             claimName: ${node}
+                        - name: config-map
+                          configMap:
+                            name: miner-files
 
                       initContainers:
                         - name: miner-init
@@ -126,31 +129,17 @@ def call(Map config) {
                             - name: SPACEMESH_MINER_PORT
                               value: \"${port}\"
 
-                            - name: SPACEMESH_COINBASE
-                              valueFrom:
-                                configMapKeyRef:
-                                  name: initfactory
-                                  key: spacemesh_coinbase
-                            - name: SPACEMESH_POET_GRPC
-                              valueFrom:
-                                configMapKeyRef:
-                                  name: initfactory
-                                  key: poet_url
-
                           args: [ "--config", "/root/config.toml",
                                   "--executable-path", "/bin/go-spacemesh",
-                                  "--tcp-port",    \$(SPACEMESH_MINER_PORT),
-                                  "--coinbase",    \$(SPACEMESH_COINBASE),
-                                  "--poet-server", "${c.poet_ip}:8080",
-                                  "--post-space",  "${c.spacemesh_space}",
-                                  "--metrics-port", "2020",
-                                  "--metrics",
+                                  "--test-mode",
                                   "--grpc-server",
                                   "--grpc-port", "9091",
                                   "--json-server",
-                                  "--test-mode",
+                                  "--metrics-port", "2020",
+                                  "--metrics",
                                   "--start-mining",
-                                  ${params}
+                                  "--coinbase",     "0x1234",
+                                  "--tcp-port",    \$(SPACEMESH_MINER_PORT)
                                 ]
                           resources:
                             limits:
@@ -162,6 +151,9 @@ def call(Map config) {
                           volumeMounts:
                             - name: miner-storage
                               mountPath: /root
+                            - name: config-map
+                              mountPath: /root/config.toml
+                              subPath: config.toml
             """).stripIndent()
 
   echo "Creating ${node}"

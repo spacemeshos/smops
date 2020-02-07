@@ -18,8 +18,7 @@ def call(String aws_region) {
   poet_params = ''
   gateway_count = 0
   miner_count = [:]
-  bootnodes = []
-  extra_params = []
+  config_toml = [:]
 
   /*
     PIPELINE
@@ -73,14 +72,30 @@ def call(String aws_region) {
       string name: 'GENESIS_DELAY', defaultValue: '10', trim: true, \
              description: 'Genesis delay from now, minutes'
 
-      string name: 'SPACEMESH_SPACE',defaultValue: '1M', trim: true, \
-             description: 'Init file space size. Appeng G for GiB, M for MiB'
-
       string name: 'SPACEMESH_VOL_SIZE', defaultValue: '10', trim: true, \
              description: 'Miner job volume space, in GB'
 
-      string name: 'EXTRA_PARAMS', defaultValue: '', trim: true, \
-             description: 'Extra parameters to miner node'
+      string name: 'SPACEMESH_SPACE',defaultValue: '256G', trim: true, \
+             description: 'Init file space size. Appeng G for GiB, M for MiB'
+
+      string name: 'LAYER_DURATION_SEC', defaultValue: '300', trim: true, description: ''
+      string name: 'LAYER_AVERAGE_SIZE', defaultValue: '30', trim: true, description: ''
+      string name: 'LAYERS_PER_EPOCH', defaultValue: '6', trim: true, description: ''
+      string name: 'GENESIS_ACTIVE_SIZE', defaultValue: '50', trim: true, description: ''
+      string name: 'SYNC_REQUEST_TIMEOUT', defaultValue: '20000', trim: true, description: ''
+      string name: 'HDIST', defaultValue: '7', trim: true, description: ''
+      string name: 'ATXS_PER_BLOCK', defaultValue: '25', trim: true, description: ''
+      string name: 'NETWORK_ID', defaultValue: '1', trim: true, description: ''
+      string name: 'RANDCON', defaultValue: '8', trim: true, description: ''
+      string name: 'BASE_REWARD', defaultValue: '50000000000000', trim: true, description: ''
+      string name: 'HARE_COMMITTEE_SIZE', defaultValue: '30', trim: true, description: ''
+      string name: 'HARE_MAX_ADVERSARIES', defaultValue: '14', trim: true, description: ''
+      string name: 'HARE_ROUND_DURATION_SEC', defaultValue: '30', trim: true, description: ''
+      string name: 'HARE_LIMIT_ITERATIONS', defaultValue: '10', trim: true, description: ''
+      string name: 'HARE_EXP_LEADERS', defaultValue: '5', trim: true, description: ''
+      string name: 'HARE_WAKEUP_DELTA', defaultValue: '30', trim: true, description: ''
+      string name: 'ELIGIBILITY_CONFIDENCE_PARAM', defaultValue: '25', trim: true, description: ''
+      string name: 'ELIGIBILITY_EPOCH_OFFSET', defaultValue: '0', trim: true, description: ''
     }
 
     stages {
@@ -99,24 +114,7 @@ def call(String aws_region) {
             }
             assert miner_count.values().sum() > 0
 
-            if(params.SPACEMESH_SPACE) {
-              if(params.SPACEMESH_SPACE.endsWith("G")) {
-                SPACEMESH_SPACE = (params.SPACEMESH_SPACE[0..-2] as long) * (1024L**3)
-              } else if(params.SPACEMESH_SPACE.endsWith("M")) {
-                SPACEMESH_SPACE = (params.SPACEMESH_SPACE[0..-2] as long) * (1024L**2)
-              } else {
-                SPACEMESH_SPACE = (params.SPACEMESH_SPACE as long)
-              }
-            } else {
-              /* Reset to 0 if not specified */
-              SPACEMESH_SPACE = 0
-            }
-
             pool_id = params.POOL_ID ?: random_id()
-
-            if(params.EXTRA_PARAMS) {
-              extra_params = params.EXTRA_PARAMS.tokenize()
-            }
 
             assert (params.POET_N as Integer) > 0
             poet_params = "--n ${params.POET_N}"
@@ -131,13 +129,50 @@ def call(String aws_region) {
             gateway_count = (params.GATEWAY_MINER_COUNT as Integer) - 1
             assert gateway_count >= 0
 
+            if(params.SPACEMESH_SPACE) {
+              if(params.SPACEMESH_SPACE.endsWith("G")) {
+                SPACEMESH_SPACE = (params.SPACEMESH_SPACE[0..-2] as long) * (1024L**3)
+              } else if(params.SPACEMESH_SPACE.endsWith("M")) {
+                SPACEMESH_SPACE = (params.SPACEMESH_SPACE[0..-2] as long) * (1024L**2)
+              } else {
+                SPACEMESH_SPACE = (params.SPACEMESH_SPACE as long)
+              }
+            } else {
+              /* Reset to 0 if not specified */
+              SPACEMESH_SPACE = 0
+            }
+
+            config_toml = [
+              POET_IP: "spacemesh-testnet-poet-rest-lb-360944519.us-east-1.elb.amazonaws.com",
+              LAYER_DURATION_SEC: params.LAYER_DURATION_SEC,
+              LAYER_AVERAGE_SIZE: params.LAYER_AVERAGE_SIZE,
+              LAYERS_PER_EPOCH: params.LAYERS_PER_EPOCH,
+              GENESIS_ACTIVE_SIZE: params.GENESIS_ACTIVE_SIZE,
+              SYNC_REQUEST_TIMEOUT: params.SYNC_REQUEST_TIMEOUT,
+              HDIST: params.HDIST,
+              ATXS_PER_BLOCK: params.ATXS_PER_BLOCK,
+              NETWORK_ID: params.NETWORK_ID,
+              BOOTSTRAP: 'false',
+              RANDCON: params.RANDCON,
+              P2P: [],
+              POST_SPACE: SPACEMESH_SPACE as String,
+              BASE_REWARD: params.BASE_REWARD,
+              HARE_COMMITTEE_SIZE: params.HARE_COMMITTEE_SIZE,
+              HARE_MAX_ADVERSARIES: params.HARE_MAX_ADVERSARIES,
+              HARE_ROUND_DURATION_SEC: params.HARE_ROUND_DURATION_SEC,
+              HARE_LIMIT_ITERATIONS: params.HARE_LIMIT_ITERATIONS,
+              HARE_EXP_LEADERS: params.HARE_EXP_LEADERS,
+              HARE_WAKEUP_DELTA: params.HARE_WAKEUP_DELTA,
+              ELIGIBILITY_CONFIDENCE_PARAM: params.ELIGIBILITY_CONFIDENCE_PARAM,
+              ELIGIBILITY_EPOCH_OFFSET: params.ELIGIBILITY_EPOCH_OFFSET,
+            ]
+
             kubectl_boot = "kubectl --context=miner-${params.BOOT_REGION}"
           }
 
           echo " >>> Number of gateways/bootstraps: ${gateway_count + 1}"
           echo " >>> Total number of miners: ${miner_count}"
           echo " >>> Miner pool ID: ${pool_id}"
-          echo " >>> Extra miner params: ${extra_params}"
         }
       }
 
@@ -157,56 +192,53 @@ def call(String aws_region) {
           script {
             echo "Initial gateway/bootstrap"
 
+            config_toml.GENESIS_TIME = (new Date(currentBuild.startTimeInMillis + (params.GENESIS_DELAY as int)*60*1000)).format("yyyy-MM-dd'T'HH:mm:ss'+00:00'")
+            echo " >>> Genesis time: ${config_toml.GENESIS_TIME}"
 
-            genesis_time = (new Date(currentBuild.startTimeInMillis + (params.GENESIS_DELAY as int)*60*1000)).format("yyyy-MM-dd'T'HH:mm:ss'+00:00'")
-            extra_params += ["--genesis-time", genesis_time]
+            createToml(config_toml)
 
-            echo " >>> Genesis time: ${genesis_time}"
-            
-            spacemesh_url = 'spacemesh://{.metadata.labels.miner-id}@{.metadata.labels.miner-ext-ip}:{.metadata.labels.miner-ext-port}'
-            
             runMinersJob = build job: "./${params.BOOT_REGION}/run-miners", parameters: [
               string(name: 'MINER_COUNT', value: '1'),
               string(name: 'POOL_ID', value: pool_id),
-              string(name: 'BOOTNODES', value: ''),
               string(name: 'MINER_IMAGE', value: params.MINER_IMAGE),
               string(name: 'SPACEMESH_SPACE', value: SPACEMESH_SPACE as String),
               string(name: 'SPACEMESH_VOL_SIZE', value: vol_size as String),
               string(name: 'MINER_CPU', value: params.MINER_CPU as String),
               string(name: 'MINER_MEM', value: params.MINER_MEM as String),
-              string(name: 'EXTRA_PARAMS', value: extra_params.join(" ")),
-              string(name: 'POET_IPS', value: poet_ips.join(" ")),
               string(name: 'LABELS', value: 'miner-role=gateway'),
             ], propagate: true, wait: true
 
+            spacemesh_url = 'spacemesh://{.metadata.labels.miner-id}@{.metadata.labels.miner-ext-ip}:{.metadata.labels.miner-ext-port}'
             boot_miner = shell("""\
               ${kubectl_boot} wait pod -l miner-role=gateway --for=condition=ready --timeout=360s \
               -o 'jsonpath=${spacemesh_url}'""")
             
             echo "boot_miner: $boot_miner"
             
+            config_toml.BOOTSTRAP = 'true'
+            config_toml.P2P = [boot_miner]
+            createToml(config_toml)
+            
             if(gateway_count) {
               echo "Extra gateways/bootstraps"
               runMinersJob = build job: "./${params.BOOT_REGION}/run-miners", parameters: [
                 string(name: 'MINER_COUNT', value: gateway_count as String),
                 string(name: 'POOL_ID', value: pool_id),
-                string(name: 'BOOTNODES', value: boot_miner),
                 string(name: 'MINER_IMAGE', value: params.MINER_IMAGE),
                 string(name: 'SPACEMESH_SPACE', value: SPACEMESH_SPACE as String),
                 string(name: 'SPACEMESH_VOL_SIZE', value: vol_size as String),
                 string(name: 'MINER_CPU', value: params.MINER_CPU as String),
                 string(name: 'MINER_MEM', value: params.MINER_MEM as String),
-                string(name: 'EXTRA_PARAMS', value: extra_params.join(" ")),
-                string(name: 'POET_IPS', value: poet_ips.join(" ")),
                 string(name: 'LABELS', value: 'miner-role=gateway'),
               ], propagate: true, wait: true
             }
 
             bootnodes = shell("""\
               ${kubectl_boot} wait pod -l miner-role=gateway --for=condition=ready --timeout=360s \
-              -o 'jsonpath=${spacemesh_url} '""").tokenize().join(',')
+              -o 'jsonpath=${spacemesh_url} '""").tokenize()
 
-            echo "bootnodes: $bootnodes"
+            config_toml.P2P += bootnodes
+            createToml(config_toml)
           }
         }
       }
@@ -238,14 +270,11 @@ def call(String aws_region) {
               string(name: 'MINER_COUNT[ap-northeast-2]', value: miner_count['ap-northeast-2'] as String),
               string(name: 'MINER_COUNT[eu-north-1]', value: miner_count['eu-north-1'] as String),
               string(name: 'POOL_ID', value: pool_id),
-              string(name: 'BOOTNODES', value: bootnodes),
               string(name: 'MINER_IMAGE', value: params.MINER_IMAGE),
               string(name: 'SPACEMESH_SPACE', value: SPACEMESH_SPACE as String),
               string(name: 'SPACEMESH_VOL_SIZE', value: vol_size as String),
               string(name: 'MINER_CPU', value: params.MINER_CPU as String),
               string(name: 'MINER_MEM', value: params.MINER_MEM as String),
-              string(name: 'EXTRA_PARAMS', value: extra_params.join(" ")),
-              string(name: 'POET_IPS', value: poet_ips.join(" ")),
             ], propagate: true, wait: true
           }
         }
@@ -256,15 +285,12 @@ def call(String aws_region) {
           script {
             def miner_params = [
               POOL_ID: pool_id,
-              BOOTNODES: bootnodes,
               GATEWAYS: gateways,
               MINER_IMAGE: params.MINER_IMAGE,
               SPACEMESH_SPACE: SPACEMESH_SPACE as String,
               SPACEMESH_VOL_SIZE: vol_size as String,
               MINER_CPU: params.MINER_CPU,
               MINER_MEM: params.MINER_MEM,
-              EXTRA_PARAMS: extra_params.join(" "),
-              POET_IPS: poet_ips.join(" "),
             ]
             /* Save build parameters as JSON */
             writeFile file: "params.json", text: groovy.json.JsonOutput.toJson(miner_params)
@@ -278,6 +304,62 @@ def call(String aws_region) {
 
 def random_port(int low=62000, int high=65535) {
   (low + (high-low)*(new Random()).nextFloat()) as int
+}
+
+def createToml(Map cfg) {
+  echo "Writing config.toml"
+  writeFile file: "config.toml", \
+    text: ("""\
+      [main]
+      genesis-time = "${cfg.GENESIS_TIME}"
+      layer-duration-sec = "${cfg.LAYER_DURATION_SEC}"
+      layer-average-size = "${cfg.LAYER_AVERAGE_SIZE}"
+      layers-per-epoch = "${cfg.LAYERS_PER_EPOCH}"
+      poet-server = "${cfg.POET_IP}:8080"
+      genesis-active-size = "${cfg.GENESIS_ACTIVE_SIZE}:8080"
+      sync-request-timeout = "${cfg.SYNC_REQUEST_TIMEOUT}"
+      hdist = "${cfg.HDIST}"
+      atxs-per-block = "${cfg.ATXS_PER_BLOCK}"
+
+      [p2p]
+      network-id = "${cfg.NETWORK_ID}"
+
+      [p2p.swarm]
+      bootstrap = ${cfg.BOOTSTRAP}
+      randcon = "${cfg.RANDCON}"
+      bootnodes = ${groovy.json.JsonOutput.toJson(cfg.P2P)}
+
+      [api]
+
+      [time]
+
+      [post]
+      post-space = "${cfg.POST_SPACE}"
+
+      [reward]
+      base-reward = "${cfg.BASE_REWARD}"
+
+      [hare]
+      hare-committee-size = "${cfg.HARE_COMMITTEE_SIZE}"
+      hare-max-adversaries = "${cfg.HARE_MAX_ADVERSARIES}"
+      hare-round-duration-sec = "${cfg.HARE_ROUND_DURATION_SEC}"
+      hare-limit-iterations = "${cfg.HARE_LIMIT_ITERATIONS}"
+      hare-exp-leaders = "${cfg.HARE_EXP_LEADERS}"
+      hare-wakeup-delta = "${cfg.HARE_WAKEUP_DELTA}"
+
+      [hare-eligibility]
+      eligibility-confidence-param = "${cfg.ELIGIBILITY_CONFIDENCE_PARAM}"
+      eligibility-epoch-offset = "${cfg.ELIGIBILITY_EPOCH_OFFSET}"
+      """).stripIndent()
+
+  def builders = [:]
+  aws_regions.each {region->
+    builders[region] = {->
+      def kubectl = "kubectl --context=${region}"
+      sh """$kubectl create configmap miner-files --from-file=config.toml --dry-run -o yaml | $kubectl apply -f -"""
+    }
+  }
+  parallel builders
 }
 
 /* vim: set filetype=groovy ts=2 sw=2 et : */

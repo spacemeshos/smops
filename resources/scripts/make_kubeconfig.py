@@ -31,11 +31,11 @@ if args.IAM_ROLE:
 cluster_info = {}
 
 for region in [
-        "ap-northeast-2",
-        "eu-north-1",
         "us-east-1",
         "us-east-2",
         "us-west-2",
+        "ap-northeast-2",
+        "eu-north-1",
         ]:
     eks = botocore.session.get_session().create_client("eks", region_name=region)
     print(f"Listing clusters in {region}")

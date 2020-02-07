@@ -1,11 +1,10 @@
 # All the regions covered by TestNet
-REGIONS="ap-northeast-2 eu-north-1 us-east-1 us-east-2 us-west-2"
+REGIONS="us-east-1 us-east-2 us-west-2 ap-northeast-2 eu-north-1"
 
 # Region where management infrastructure resides
 MGMT_REGION="us-east-1"
 
 # Common spacemesh configuration parameters
-SPACEMESH_COINBASE="0x1234"
 SPACEMESH_POET_URL="poet-testnet.spacemesh.io:8080"
 
 # Logging infrastructure parameters

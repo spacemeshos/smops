@@ -88,14 +88,11 @@ def call(String aws_region) {
                   runMinersJob = build job: "./${region}/run-miners", parameters: [
                             string(name: 'MINER_COUNT', value: miner_count[region] as String),
                             string(name: 'POOL_ID', value: miner_params.POOL_ID),
-                            string(name: 'BOOTNODES', value: miner_params.BOOTNODES),
                             string(name: 'MINER_IMAGE', value: miner_params.MINER_IMAGE),
                             string(name: 'SPACEMESH_SPACE', value: miner_params.SPACEMESH_SPACE),
                             string(name: 'SPACEMESH_VOL_SIZE', value: miner_params.SPACEMESH_VOL_SIZE),
                             string(name: 'MINER_CPU', value: miner_params.MINER_CPU),
                             string(name: 'MINER_MEM', value: miner_params.MINER_MEM),
-                            string(name: 'EXTRA_PARAMS', value: miner_params.EXTRA_PARAMS),
-                            string(name: 'POET_IPS', value: miner_params.POET_IPS),
                             string(name: 'LABELS', value: params.LABELS),
                           ], propagate: true, wait: true
                 }

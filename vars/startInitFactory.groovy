@@ -25,16 +25,16 @@ def call() {
 
     parameters {
       /* FIXME: Move these to the seed job to be scriptable */
-      string name: 'WORKER_COUNT[ap-northeast-2]', defaultValue: '0', trim: true, \
-             description: 'Number of the workers to start in ap-northeast-2'
-      string name: 'WORKER_COUNT[eu-north-1]', defaultValue: '0', trim: true, \
-             description: 'Number of the workers to start in eu-north-1'
       string name: 'WORKER_COUNT[us-east-1]', defaultValue: '0', trim: true, \
              description: 'Number of the workers to start in us-east-1'
       string name: 'WORKER_COUNT[us-east-2]', defaultValue: '0', trim: true, \
              description: 'Number of the workers to start in us-east-2'
       string name: 'WORKER_COUNT[us-west-2]', defaultValue: '0', trim: true, \
              description: 'Number of the workers to start in us-west-2'
+      string name: 'WORKER_COUNT[ap-northeast-2]', defaultValue: '0', trim: true, \
+             description: 'Number of the workers to start in ap-northeast-2'
+      string name: 'WORKER_COUNT[eu-north-1]', defaultValue: '0', trim: true, \
+             description: 'Number of the workers to start in eu-north-1'
 
       string name: 'SPACEMESH_SPACE',defaultValue: '256G', trim: true, \
              description: 'Init file space size. Appeng G for GiB, M for MiB'

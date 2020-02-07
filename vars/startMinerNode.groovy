@@ -166,12 +166,13 @@ def call(Map config) {
 
   echo "Creating ${node}"
   sh """${kubectl} create --save-config -f ${node}-deploy.yml"""
-  (pod_name, node_name) = shell("""\
+  def (pod_name, node_name) = shell("""\
     ${kubectl} wait pod -l worker-id=${worker_id} --for=condition=ready --timeout=360s \
     -o 'jsonpath={.metadata.name} {.spec.nodeName}'""").tokenize()
-  miner_ext_ip = shell("""\
+  def miner_ext_ip = shell("""\
     ${kubectl} get node ${node_name} \
     -o 'jsonpath={.status.addresses[?(@.type=="ExternalIP")].address}'""")
+  def miner_id = ''
   timeout(1) {
     waitUntil {
       script {
@@ -182,7 +183,7 @@ def call(Map config) {
   }
 
   shell("""${kubectl} label --overwrite pods ${pod_name} miner-id=${miner_id} miner-ext-ip=${miner_ext_ip} miner-ext-port=${port} ${c.labels}""")
-  spacemesh_url = """spacemesh://${miner_id}@${miner_ext_ip}:${port}"""
+  def spacemesh_url = """spacemesh://${miner_id}@${miner_ext_ip}:${port}"""
   return spacemesh_url
 }
 

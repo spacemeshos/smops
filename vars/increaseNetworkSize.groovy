@@ -84,7 +84,7 @@ def call(String aws_region) {
             aws_regions.each {region->
               if(miner_count[region]) {
                 stages[region] = {->
-                  echo "Starting miners at region ${aws_region}"
+                  echo "Starting miners at region ${region}"
                   runMinersJob = build job: "./${region}/run-miners", parameters: [
                             string(name: 'MINER_COUNT', value: miner_count[region] as String),
                             string(name: 'POOL_ID', value: miner_params.POOL_ID),

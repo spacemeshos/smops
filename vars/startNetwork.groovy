@@ -84,7 +84,7 @@ def call(String aws_region) {
       string name: 'GENESIS_ACTIVE_SIZE', defaultValue: '50', trim: true, description: ''
       string name: 'SYNC_REQUEST_TIMEOUT', defaultValue: '20000', trim: true, description: ''
       string name: 'HDIST', defaultValue: '7', trim: true, description: ''
-      string name: 'ATXS_PER_BLOCK', defaultValue: '25', trim: true, description: ''
+      string name: 'ATXS_PER_BLOCK', defaultValue: '100', trim: true, description: ''
       string name: 'POST_LABELS', defaultValue: '100', trim: true, description: ''
       string name: 'NETWORK_ID', defaultValue: '1', trim: true, description: ''
       string name: 'RANDCON', defaultValue: '8', trim: true, description: ''

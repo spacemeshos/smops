@@ -361,7 +361,7 @@ def createToml(Map cfg) {
   def builders = [:]
   aws_regions.each {region->
     builders[region] = {->
-      def kubectl = "kubectl --context=${region}"
+      def kubectl = "kubectl --context=miner-${region}"
       sh """$kubectl create configmap miner-files --from-file=config.toml --dry-run -o yaml | $kubectl apply -f -"""
     }
   }

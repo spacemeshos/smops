@@ -124,8 +124,15 @@ def call(Map config) {
                             - protocol: UDP
                               containerPort: ${port}
                               hostPort: ${port}
-                            - containerPort: 9090
-                            - containerPort: 9091
+                            - protocol: TCP
+                              containerPort: 9091
+                            - protocol: TCP
+                              containerPort: 9090
+                          readinessProbe:
+                            initialDelaySeconds: 10
+                            failureThreshold: 30
+                            tcpSocket:
+                              port: 9091
 
                           env:
                             - name: SPACEMESH_MINER_PORT

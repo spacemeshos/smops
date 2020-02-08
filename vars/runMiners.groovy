@@ -13,6 +13,7 @@ def call(String aws_region) {
   /* Pipeline global vars */
   miner_count = 0
   worker_ports = []
+  poet_ips = []
   labels = []
 
   /*
@@ -47,6 +48,9 @@ def call(String aws_region) {
       string name: 'SPACEMESH_VOL_SIZE', defaultValue: '300', trim: true, \
              description: 'Miner job volume space, in GB'
 
+      string name: 'POET_IPS', defaultValue: '', trim: true, \
+             description: 'List of PoETs (separated by whitespaces)'
+
       string name: 'LABELS', defaultValue: '', trim: true, \
              description: 'List of key=value miner labels (separated by whitespaces)'
     }
@@ -59,6 +63,11 @@ def call(String aws_region) {
           script {
             miner_count = params.MINER_COUNT as int
             vol_size = params.SPACEMESH_VOL_SIZE as int
+            poet_ips = params.POET_IPS.tokenize()
+
+            assert miner_count > 0
+            assert vol_size > 0
+            assert poet_ips.size() > 0
 
             if(params.SPACEMESH_SPACE) {
               if(params.SPACEMESH_SPACE.endsWith("G")) {
@@ -78,9 +87,6 @@ def call(String aws_region) {
 
             worker_ports = random_ports(miner_count)
             worker_ports.sort()
-
-            assert vol_size > 0
-            assert miner_count > 0
           }
           echo "Number of miners: ${miner_count}"
           echo "Miner pool ID: ${pool_id}"
@@ -91,6 +97,7 @@ def call(String aws_region) {
       stage("Create workers") {
         steps {
           script {
+            p = poet_ips.size()
             def builders = [:]
             worker_ports.each {port->
               builders[port] = {->
@@ -99,6 +106,8 @@ def call(String aws_region) {
                                miner_image: params.MINER_IMAGE, port: port, \
                                spacemesh_space: SPACEMESH_SPACE, vol_size: vol_size, \
                                cpu: params.MINER_CPU, mem: params.MINER_MEM, \
+                               params: extra_params, \
+                               poet_ip: poet_ips[port%p], \
                                labels: params.LABELS])
               }
             }

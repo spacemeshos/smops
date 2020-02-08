@@ -94,6 +94,7 @@ def call(String aws_region) {
                             string(name: 'MINER_CPU', value: miner_params.MINER_CPU),
                             string(name: 'MINER_MEM', value: miner_params.MINER_MEM),
                             string(name: 'LABELS', value: params.LABELS),
+                            string(name: 'POET_IPS', value: miner_params.POET_IPS),
                           ], propagate: true, wait: true
                 }
               }

@@ -9,15 +9,17 @@ def call(Map config) {
   def c = [miner_image: default_miner_image,
             init_miner_image: "spacemeshos/spacemeshos-miner-init:latest",
             cpu: "2", mem: "4Gi",
-            params: [],
+            labels: '',
             ] + config
 
   def kubectl = "kubectl --context=miner-${c.aws_region}"
   def node_id = c.node_id
   def port = c.port
+  def poet_server = "${c.poet_ip}:8080"
   def worker_id = "${c.pool_id}-${node_id}"
   def node = "miner-${worker_id}"
-  def params = """\"${c.params.join('", "')}\""""
+  def labels = c.labels
+
   echo "Writing manifest for ${node}"
   writeFile file: "${node}-deploy.yml", \
             text: ("""\
@@ -137,9 +139,12 @@ def call(Map config) {
                           env:
                             - name: SPACEMESH_MINER_PORT
                               value: \"${port}\"
+                            - name: POET_SERVER
+                              value: \"${poet_server}\"
 
                           args: [ "--config", "/root/config.toml",
                                   "--executable-path", "/bin/go-spacemesh",
+                                  "--poet-server", \$(POET_SERVER),
                                   "--test-mode",
                                   "--grpc-server",
                                   "--json-server",
@@ -166,25 +171,28 @@ def call(Map config) {
 
   echo "Creating ${node}"
   sh """${kubectl} create --save-config -f ${node}-deploy.yml"""
-  def (pod_name, node_name) = shell("""\
-    ${kubectl} wait pod -l worker-id=${worker_id} --for=condition=ready --timeout=360s \
-    -o 'jsonpath={.metadata.name} {.spec.nodeName}'""").tokenize()
-  def miner_ext_ip = shell("""\
-    ${kubectl} get node ${node_name} \
-    -o 'jsonpath={.status.addresses[?(@.type=="ExternalIP")].address}'""")
-  def miner_id = ''
-  timeout(1) {
-    waitUntil {
-      script {
-        miner_id = shell("""${kubectl} exec ${pod_name} -- /bin/sh -c '[ -d /root/spacemesh/p2p/nodes ] && ls /root/spacemesh/p2p/nodes || echo'""")
-        return (miner_id.size() > 0)
+
+  if (labels) > 0 {
+    def (pod_name, node_name) = shell("""\
+      ${kubectl} wait pod -l worker-id=${worker_id} --for=condition=ready --timeout=360s \
+      -o 'jsonpath={.metadata.name} {.spec.nodeName}'""").tokenize()
+    def miner_ext_ip = shell("""\
+      ${kubectl} get node ${node_name} \
+      -o 'jsonpath={.status.addresses[?(@.type=="ExternalIP")].address}'""")
+    def miner_id = ''
+    timeout(1) {
+      waitUntil {
+        script {
+          miner_id = shell("""${kubectl} exec ${pod_name} -- /bin/sh -c '[ -d /root/spacemesh/p2p/nodes ] && ls /root/spacemesh/p2p/nodes || echo'""")
+          return (miner_id.size() > 0)
+        }
       }
     }
-  }
 
-  shell("""${kubectl} label --overwrite pods ${pod_name} miner-id=${miner_id} miner-ext-ip=${miner_ext_ip} miner-ext-port=${port} ${c.labels}""")
-  def spacemesh_url = """spacemesh://${miner_id}@${miner_ext_ip}:${port}"""
-  return spacemesh_url
+    shell("""${kubectl} label --overwrite pods ${pod_name} miner-id=${miner_id} miner-ext-ip=${miner_ext_ip} miner-ext-port=${port} ${labels}""")
+    def spacemesh_url = """spacemesh://${miner_id}@${miner_ext_ip}:${port}"""
+    echo "$spacemesh_url"
+  }
 }
 
 /* vim: set filetype=groovy ts=2 sw=2 et : */

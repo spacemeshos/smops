@@ -209,6 +209,7 @@ def call(String aws_region) {
               string(name: 'SPACEMESH_VOL_SIZE', value: vol_size as String),
               string(name: 'MINER_CPU', value: params.MINER_CPU as String),
               string(name: 'MINER_MEM', value: params.MINER_MEM as String),
+              string(name: 'POET_IPS', value: poet_ips.join(' ')),
               string(name: 'LABELS', value: 'miner-role=gateway'),
             ], propagate: true, wait: true
 
@@ -233,6 +234,7 @@ def call(String aws_region) {
                 string(name: 'SPACEMESH_VOL_SIZE', value: vol_size as String),
                 string(name: 'MINER_CPU', value: params.MINER_CPU as String),
                 string(name: 'MINER_MEM', value: params.MINER_MEM as String),
+                string(name: 'POET_IPS', value: poet_ips.join(' ')),
                 string(name: 'LABELS', value: 'miner-role=gateway'),
               ], propagate: true, wait: true
             }
@@ -279,6 +281,7 @@ def call(String aws_region) {
               string(name: 'SPACEMESH_VOL_SIZE', value: vol_size as String),
               string(name: 'MINER_CPU', value: params.MINER_CPU as String),
               string(name: 'MINER_MEM', value: params.MINER_MEM as String),
+              string(name: 'POET_IPS', value: poet_ips.join(' ')),
             ], propagate: true, wait: true
           }
         }
@@ -295,6 +298,7 @@ def call(String aws_region) {
               SPACEMESH_VOL_SIZE: vol_size as String,
               MINER_CPU: params.MINER_CPU,
               MINER_MEM: params.MINER_MEM,
+              POET_IPS: poet_ips.join(' '),
             ]
             /* Save build parameters as JSON */
             writeFile file: "params.json", text: groovy.json.JsonOutput.toJson(miner_params)

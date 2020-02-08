@@ -124,6 +124,8 @@ def call(Map config) {
                             - protocol: UDP
                               containerPort: ${port}
                               hostPort: ${port}
+                            - containerPort: 9090
+                            - containerPort: 9091
 
                           env:
                             - name: SPACEMESH_MINER_PORT
@@ -133,7 +135,6 @@ def call(Map config) {
                                   "--executable-path", "/bin/go-spacemesh",
                                   "--test-mode",
                                   "--grpc-server",
-                                  "--grpc-port", "9091",
                                   "--json-server",
                                   "--metrics-port", "2020",
                                   "--metrics",

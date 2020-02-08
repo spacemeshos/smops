@@ -172,7 +172,7 @@ def call(Map config) {
   echo "Creating ${node}"
   sh """${kubectl} create --save-config -f ${node}-deploy.yml"""
 
-  if (labels) > 0 {
+  if (labels) {
     def (pod_name, node_name) = shell("""\
       ${kubectl} wait pod -l worker-id=${worker_id} --for=condition=ready --timeout=360s \
       -o 'jsonpath={.metadata.name} {.spec.nodeName}'""").tokenize()

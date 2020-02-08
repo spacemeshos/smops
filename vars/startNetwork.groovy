@@ -320,7 +320,7 @@ def createToml(Map cfg) {
       layer-average-size = "${cfg.LAYER_AVERAGE_SIZE}"
       layers-per-epoch = "${cfg.LAYERS_PER_EPOCH}"
       poet-server = "${cfg.POET_IP}:8080"
-      genesis-active-size = "${cfg.GENESIS_ACTIVE_SIZE}:8080"
+      genesis-active-size = "${cfg.GENESIS_ACTIVE_SIZE}"
       sync-request-timeout = "${cfg.SYNC_REQUEST_TIMEOUT}"
       hdist = "${cfg.HDIST}"
       atxs-per-block = "${cfg.ATXS_PER_BLOCK}"

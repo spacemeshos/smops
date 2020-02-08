@@ -343,7 +343,7 @@ def createToml(Map cfg) {
       post-labels = "${cfg.POST_LABELS}"
 
       [reward]
-      base-reward = "${cfg.BASE_REWARD}"
+      base-reward = {abs = "${cfg.BASE_REWARD}"}
 
       [hare]
       hare-committee-size = "${cfg.HARE_COMMITTEE_SIZE}"

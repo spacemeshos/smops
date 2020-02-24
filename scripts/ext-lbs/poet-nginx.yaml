@@ -1,0 +1,91 @@
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: poet-service
+  labels:
+    app: poet-nginx
+spec:
+  ports:
+  - port: 80
+    targetPort: 8080
+    protocol: TCP
+    name: rest
+  selector:
+    statefulset.kubernetes.io/pod-name: poet-0
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: poet-nginx
+  labels:
+    app: poet-nginx
+spec:
+  type: LoadBalancer
+  ports:
+  - port: 80
+    targetPort: 80
+    protocol: TCP
+    name: http
+  selector:
+    app: poet-nginx
+---
+apiVersion: v1
+data:
+  default.conf: |-
+    upstream poet {
+      server poet-service:9090;
+      server poet-service:9091;
+    }
+
+    server {
+      listen 80;
+      location /v1/info {
+        proxy_pass http://poet:80/v1/info;
+      }
+      location /v1/submit {
+        proxy_pass http://poet:80/v1/submit;
+      }
+    }
+kind: ConfigMap
+metadata:
+  name: poet-nginx-files
+  labels:
+    app: poet-nginx
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: poet-nginx
+  labels:
+    app: poet-nginx
+spec:
+  selector:
+    matchLabels:
+      app: poet-nginx
+  replicas: 1
+  template:
+    metadata:
+      labels:
+        app: poet-nginx
+    spec:
+      tolerations:
+      - key: dedicated
+        operator: Equal
+        value: logging
+        effect: NoSchedule
+      nodeSelector:
+        pool: logging
+      volumes:
+      - name: config-map
+        configMap:
+          name: poet-nginx-files
+      containers:
+      - name: nginx
+        image: nginx
+        ports:
+        - containerPort: 80
+        volumeMounts:
+        - name: config-map
+          mountPath: /etc/nginx/conf.d/default.conf
+          subPath: default.conf

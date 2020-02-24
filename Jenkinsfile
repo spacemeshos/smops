@@ -94,11 +94,11 @@ def topFolderDSL(name, desc="", display_name="") {
       listView("Default") {
         description "TestNet-wide jobs"
         jobs {
-          name "unlock-initdata"
-          name "start-miners"
+          name "start-network"
           name "increase-network"
-          name "stop-miners"
           name "decrease-network"
+          name "stop-network"
+          name "unlock-initdata"
           name "start-initfactory"
           name "cleanup-initfactory-workers"
         }
@@ -255,7 +255,7 @@ def testnetDSL() {
   result += testnetCleanAllDSL(top_folder)
   result += testnetUnlockAllDSL(top_folder)
   result += simpleJobDSL(
-    "${top_folder}/start-miners",
+    "${top_folder}/start-network",
     "startNetwork()",
     "Start TestNet",
   )
@@ -265,7 +265,7 @@ def testnetDSL() {
     "Add TestNet Miners",
   )
   result += simpleJobDSL(
-    "${top_folder}/stop-miners",
+    "${top_folder}/stop-network",
     "stopNetwork()",
     "Stop TestNet",
   )

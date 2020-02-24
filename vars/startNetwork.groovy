@@ -13,6 +13,7 @@ def call(String aws_region) {
   /* Defaults */
 
   kubectl_poet = "kubectl --context=${poet_ctx}"
+  poet_rest_lb = "af1cbcd27574011eaad71167fe06fe2e-425091448.us-east-1.elb.amazonaws.com"
 
   /* Pipeline global vars */
   poet_params = ''
@@ -145,10 +146,10 @@ def call(String aws_region) {
             }
 
             config_toml = [
-              POET_IP: "spacemesh-testnet-poet-rest-lb-360944519.us-east-1.elb.amazonaws.com",
               LAYER_DURATION_SEC: params.LAYER_DURATION_SEC,
               LAYER_AVERAGE_SIZE: params.LAYER_AVERAGE_SIZE,
               LAYERS_PER_EPOCH: params.LAYERS_PER_EPOCH,
+              POET_SERVER: poet_rest_lb,
               GENESIS_ACTIVE_SIZE: params.GENESIS_ACTIVE_SIZE,
               SYNC_REQUEST_TIMEOUT: params.SYNC_REQUEST_TIMEOUT,
               HDIST: params.HDIST,
@@ -199,7 +200,7 @@ def call(String aws_region) {
             config_toml.GENESIS_TIME = (new Date(currentBuild.startTimeInMillis + (params.GENESIS_DELAY as int)*60*1000)).format("yyyy-MM-dd'T'HH:mm:ss'+00:00'")
             echo " >>> Genesis time: ${config_toml.GENESIS_TIME}"
 
-            createToml(config_toml)
+            createToml(config_toml, kubectl_boot)
 
             runMinersJob = build job: "./${params.BOOT_REGION}/run-miners", parameters: [
               string(name: 'MINER_COUNT', value: '1'),
@@ -222,7 +223,7 @@ def call(String aws_region) {
             
             config_toml.BOOTSTRAP = 'true'
             config_toml.P2P = [boot_miner]
-            createToml(config_toml)
+            createToml(config_toml, kubectl_boot)
             
             if(gateway_count) {
               echo "Extra gateways/bootstraps"
@@ -244,7 +245,7 @@ def call(String aws_region) {
               -o 'jsonpath=${spacemesh_url} '""").tokenize()
 
             config_toml.P2P += bootnodes
-            createToml(config_toml)
+            createToml(config_toml, kubectl_boot)
           }
         }
       }
@@ -291,6 +292,7 @@ def call(String aws_region) {
         steps {
           script {
             def miner_params = [
+              BOOT_REGION: params.BOOT_REGION,
               POOL_ID: pool_id,
               GATEWAYS: gateways,
               MINER_IMAGE: params.MINER_IMAGE,
@@ -314,7 +316,7 @@ def random_port(int low=62000, int high=65535) {
   (low + (high-low)*(new Random()).nextFloat()) as int
 }
 
-def createToml(Map cfg) {
+def createToml(Map cfg, String kubectl_boot) {
   echo "Writing config.toml"
   writeFile file: "config.toml", \
     text: ("""\
@@ -323,7 +325,7 @@ def createToml(Map cfg) {
       layer-duration-sec = "${cfg.LAYER_DURATION_SEC}"
       layer-average-size = "${cfg.LAYER_AVERAGE_SIZE}"
       layers-per-epoch = "${cfg.LAYERS_PER_EPOCH}"
-      poet-server = "${cfg.POET_IP}:8080"
+      poet-server = "${cfg.POET_SERVER}"
       genesis-active-size = "${cfg.GENESIS_ACTIVE_SIZE}"
       sync-request-timeout = "${cfg.SYNC_REQUEST_TIMEOUT}"
       hdist = "${cfg.HDIST}"
@@ -370,6 +372,8 @@ def createToml(Map cfg) {
     }
   }
   parallel builders
+
+  sh """$kubectl_boot rollout restart deployment/config-toml"""
 }
 
 /* vim: set filetype=groovy ts=2 sw=2 et : */

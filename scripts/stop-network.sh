@@ -1,3 +1,3 @@
 kubectl config get-contexts -o name | \
   grep 'miner\|mgmt' | \
-  xargs -n 1 -P 6 -I {} kubectl --context={} delete svc,deploy,pvc,statefulset -l provider!=kubernetes -n default
+  xargs -I {} sh -c 'printf -v d "%-26s" " "; echo "${d// /-} {} ${d// /-}"; kubectl --context={} delete svc,deploy,pvc,statefulset -l app=miner,app=poet -n default'

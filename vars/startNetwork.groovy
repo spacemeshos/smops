@@ -188,6 +188,7 @@ def call(String aws_region) {
             poet_ips = shell("""${kubectl_poet} get pod -l app=poet -o 'jsonpath={.items[*].status.podIP}'""")
             poet_ips = poet_ips.tokenize()
             echo "poet_ips: ${poet_ips}"
+            sh """$kubectl_poet delete pod -l app=poet-nginx"""
           }
         }
       }

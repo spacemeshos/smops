@@ -12,7 +12,7 @@ spec:
     protocol: TCP
     name: rest
   selector:
-    statefulset.kubernetes.io/pod-name: poet-0
+    statefulset.kubernetes.io/pod-name: poet-1
 ---
 apiVersion: v1
 kind: Service
@@ -34,17 +34,16 @@ apiVersion: v1
 data:
   default.conf: |-
     upstream poet {
-      server poet-service:9090;
-      server poet-service:9091;
+      server poet-service:80;
     }
 
     server {
       listen 80;
       location /v1/info {
-        proxy_pass http://poet:80/v1/info;
+        proxy_pass http://poet/v1/info;
       }
       location /v1/submit {
-        proxy_pass http://poet:80/v1/submit;
+        proxy_pass http://poet/v1/submit;
       }
     }
 kind: ConfigMap

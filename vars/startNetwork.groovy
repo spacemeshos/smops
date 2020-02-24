@@ -373,7 +373,7 @@ def createToml(Map cfg, String kubectl_boot) {
   }
   parallel builders
 
-  sh """$kubectl_boot rollout restart deployment/config-toml"""
+  sh """$kubectl_boot delete pod -l app=config-toml"""
 }
 
 /* vim: set filetype=groovy ts=2 sw=2 et : */

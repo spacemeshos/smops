@@ -36,6 +36,10 @@ def call(String aws_region) {
              description: 'Number of the miners to start in ap-northeast-2'
       string name: 'MINER_COUNT[eu-north-1]', defaultValue: '0', trim: true, \
              description: 'Number of the miners to start in eu-north-1'
+
+      string name: 'MINER_IMAGE', defaultValue: '', trim: true, \
+             description: 'To use the image the other miners used, leave empty'
+
       string name: 'LABELS', defaultValue: '', trim: true, \
              description: 'List of key=value miner labels (separated by whitespaces)'
     }
@@ -69,6 +73,11 @@ def call(String aws_region) {
               echo "Load params.json"
               def params_json = readFile("params.json")
               miner_params.putAll((new groovy.json.JsonSlurper()).parseText(params_json))
+
+              miner_params.LABELS = params.LABELS
+              if(params.MINER_IMAGE) {
+                miner_params.MINER_IMAGE = params.MINER_IMAGE
+              }
             }
           }
 
@@ -93,7 +102,7 @@ def call(String aws_region) {
                             string(name: 'SPACEMESH_VOL_SIZE', value: miner_params.SPACEMESH_VOL_SIZE),
                             string(name: 'MINER_CPU', value: miner_params.MINER_CPU),
                             string(name: 'MINER_MEM', value: miner_params.MINER_MEM),
-                            string(name: 'LABELS', value: params.LABELS),
+                            string(name: 'LABELS', value: miner_params.LABELS),
                             string(name: 'POET_IPS', value: miner_params.POET_IPS),
                           ], propagate: true, wait: true
                 }

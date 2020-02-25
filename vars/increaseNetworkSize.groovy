@@ -65,7 +65,7 @@ def call(String aws_region) {
             } else {
               echo "Copy params.json from the latest start-network run"
               copyArtifacts filter: "params.json",
-                            projectName: "./start-miners",
+                            projectName: "./start-network",
                             fingerprintArtifacts: true,
                             flatten: true,
                             selector: lastSuccessful()

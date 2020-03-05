@@ -97,7 +97,6 @@ def topFolderDSL(name, desc="", display_name="") {
           name "start-network"
           name "increase-network"
           name "decrease-network"
-          name "stop-network"
           name "unlock-initdata"
           name "start-initfactory"
           name "cleanup-initfactory-workers"

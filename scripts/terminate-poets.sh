@@ -1,3 +1,5 @@
+#!/bin/bash
+
 POET_IDS=$(aws ec2 describe-instances \
   --filter \
     "Name=instance-state-name,Values=running" \
@@ -5,7 +7,7 @@ POET_IDS=$(aws ec2 describe-instances \
     "Name=tag-value,Values=poet" \
   --query \
     'Reservations[*].Instances[*].InstanceId' \
-  --output text)
+  --output text | tr '\n' ' ')
 
 if [[ ! -z "$POET_IDS" ]]; then
   aws autoscaling update-auto-scaling-group \

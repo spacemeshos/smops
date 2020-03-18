@@ -1,3 +1,5 @@
 .*.sw?
 **/.*.sw?
 .vscode
+add-ovpn-user.sh
+jenkins-token.env

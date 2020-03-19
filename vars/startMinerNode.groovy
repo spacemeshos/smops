@@ -150,7 +150,6 @@ def call(Map config) {
                                   "--json-server",
                                   "--metrics-port", "2020",
                                   "--metrics",
-                                  "--acquire-port", "false",
                                   "--start-mining",
                                   "--coinbase",     "910d30bfb6b29577ed130e3fdc27a1cabd639f46ac93831de14279c444b9ef0b",
                                   "--tcp-port",    \$(SPACEMESH_MINER_PORT)
